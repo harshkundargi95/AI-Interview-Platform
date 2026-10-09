@@ -1,0 +1,62 @@
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
+import { Button, ButtonLink, Card, PageHeading, SelectField } from '../components/ui.jsx'
+import { useInterview } from '../interview/useInterview.js'
+import { defaultPreferences, roleLabels, experienceLabels, typeLabels, difficultyLabels, trackSubjects, subjectLabels, languageLabels, technologyLabels, configurationError, technicalCount } from '../../../shared/interviewOptions.js'
+
+const options = (labels) => Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)
+export default function Setup() {
+  const { session, startInterview, busy, requestError } = useInterview()
+  const [preferences, setPreferences] = useState({ ...defaultPreferences, ...session?.preferences })
+  const navigate = useNavigate()
+  const mounted = useRef(true)
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
+  const error = configurationError(preferences)
+  function change(event) {
+    const { name, value } = event.target
+    setPreferences((previous) => ({ ...previous, [name]: name === 'questionCount' ? Number(value) : value, ...(name === 'role' ? { subjects: [] } : {}), ...(name === 'type' && value === 'behavioral' ? { subjects: [], topicMode: 'balanced' } : {}) }))
+  }
+  function toggle(name, value) {
+    setPreferences((previous) => ({ ...previous, [name]: previous[name].includes(value) ? previous[name].filter((item) => item !== value) : [...previous[name], value] }))
+  }
+  async function start(event) {
+    event.preventDefault()
+    if (error) return
+    const started = await startInterview(preferences)
+    if (started && mounted.current) navigate('/interview')
+  }
+  return <>
+    <PageHeading eyebrow="01 / Prepare" title="Make this time yours.">Practice for software developer internships and junior roles.</PageHeading>
+    <div className="content-grid">
+      <Card aria-labelledby="setup-title">
+        <h2 id="setup-title">Interview preferences</h2>
+        <p className="muted">Fixed-bank practice, not AI-generated questions. Drafts stay in this tab until completion.</p>
+        <form onSubmit={start}>
+          <div className="form-stack">
+            <SelectField id="role" name="role" label="Job role" value={preferences.role} onChange={change} disabled={busy}>{options(roleLabels)}</SelectField>
+            <SelectField id="experience" name="experience" label="Experience level" value={preferences.experience} onChange={change} disabled={busy}>{options(experienceLabels)}</SelectField>
+            <SelectField id="type" name="type" label="Interview type" value={preferences.type} onChange={change} disabled={busy}>{options(typeLabels)}</SelectField>
+            <SelectField id="difficulty" name="difficulty" label="Difficulty" value={preferences.difficulty} onChange={change} disabled={busy} hint="Relative to your experience level; no senior-level interviews.">{options(difficultyLabels)}</SelectField>
+            <SelectField id="questionCount" name="questionCount" label="Question count" value={preferences.questionCount} onChange={change} disabled={busy}>{Array.from({ length: 8 }, (_, index) => <option key={index + 3} value={index + 3}>{index + 3} questions</option>)}</SelectField>
+            {preferences.type !== 'behavioral' && <>
+              <SelectField id="topicMode" name="topicMode" label="Topic coverage" value={preferences.topicMode} onChange={change} disabled={busy}><option value="balanced">Automatic / balanced</option><option value="selected">Choose subjects</option></SelectField>
+              {preferences.topicMode === 'selected' ? <fieldset className="choice-group" disabled={busy}><legend>Subjects</legend>{trackSubjects[preferences.role].map((subject) => <label key={subject}><input type="checkbox" checked={preferences.subjects.includes(subject)} onChange={() => toggle('subjects', subject)} />{subjectLabels[subject]}</label>)}</fieldset> : <p className="small-note">Balanced coverage rotates through this track’s subjects, starting with its fundamentals. With {technicalCount(preferences)} technical slots, not every subject may appear. Choose subjects to guarantee coverage.</p>}
+            </>}
+            <SelectField id="language" name="language" label="Preferred programming language" value={preferences.language} onChange={change} disabled={busy}>{options(languageLabels)}</SelectField>
+            <fieldset className="choice-group" disabled={busy}><legend>Relevant technologies (optional, up to 5)</legend>{Object.entries(technologyLabels).map(([value, label]) => <label key={value}><input type="checkbox" checked={preferences.technologies.includes(value)} disabled={!preferences.technologies.includes(value) && preferences.technologies.length >= 5} onChange={() => toggle('technologies', value)} />{label}</label>)}</fieldset>
+          </div>
+          <p className="small-note">Matching language/technology questions are preferred where available; otherwise we use language-neutral concepts within your chosen subjects. Behavioral interviews do not require technical subjects.</p>
+          {session?.status === 'completed' && <p className="small-note">Starting again replaces your current local answer review.</p>}
+          {error && <p role="alert" className="form-error">{error}</p>}
+          <p role="status" className="small-note">{busy ? 'Loading your questions…' : ''}</p>
+          {requestError && <p role="alert" className="form-error">{requestError}</p>}
+          <div className="actions"><Button type="submit" disabled={busy || Boolean(error)}>{busy ? 'Loading…' : requestError ? 'Retry starting interview' : 'Start interview →'}</Button>{session?.status === 'completed' && <ButtonLink to="/feedback" variant="secondary">Review your answers</ButtonLink>}</div>
+        </form>
+      </Card>
+      <aside className="stack" aria-label="Session guidance">
+        <Card className="tinted-card"><p className="eyebrow">Room to think</p><h2>A calm space to practice.</h2><ul className="guidance-list"><li>3–10 questions, no timer.</li><li>Go back to refine earlier answers.</li><li>Discuss code or pseudocode; code is not executed.</li><li>Feedback is a labeled sample, not an AI assessment.</li></ul></Card>
+        <Card><h3>Start with text</h3><p>No account or API key is needed. Answers go only to the local Express server. Saved answers persist in PostgreSQL and can be resumed from History. Save progress before refreshing to keep your latest edits.</p></Card>
+      </aside>
+    </div>
+  </>
+}

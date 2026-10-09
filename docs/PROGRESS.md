@@ -1,0 +1,347 @@
+# Progress
+
+## Current checkpoint
+
+**Phase 4 complete — 2026-10-09. Stop at the learning checkpoint.**
+Next unfinished phase: **Phase 5 — authentication and authorization**.
+The project folder is now C:/Users/harsh/Desktop/AI interview project; this chat
+was still configured for the old New folder path. Work was performed in the
+existing renamed project with approved filesystem access; no duplicate was created.
+
+## Phase 4 implementation and evidence
+
+- Added Prisma 7.10/PostgreSQL adapter, schema, initial SQL migration and development
+  seed. Interview stores full configuration/status/timestamps/revision. Question
+  stores exact text/order/topic/metadata. Answer has a composite foreign key to
+  the interview's question. FeedbackReport is modeled but generation remains Phase 6.
+- Normal API startup requires local PostgreSQL, with no fallback to Map. The old
+  service remains a fixture for the earlier fast unit/API regression tests only.
+- Added history pagination, resume/read and deletion. Questions, answers and reports
+  cascade on deletion. History is real; sample feedback remains explicitly fictional.
+- Saves/completion use serializable transactions, bounded conflict retries,
+  revision checking and safe identical replays. Completed answers cannot change.
+- Added Save progress and saved/unsaved UI state. Refresh recovery is through History.
+  Only unsaved edits trigger abandonment warnings. No autosave is claimed.
+- Development owner comes from server code. All persistence operations are scoped
+  to it. Production and remote database hosts are refused; local API/DB bind loopback.
+  This is not authentication; everyone using this local API shares its identity.
+- Added a development-only embedded-postgres launcher. Real PostgreSQL 18.4 runs on
+  127.0.0.1:55432 with persistent files under ignored server/.data/postgres.
+  Created server/.env from the local example; no secrets were requested or published.
+
+## Phase 4 actual verification
+
+- npm run db:generate: passed, JavaScript Prisma client 7.10.0 generated.
+- npm run db:migrate: initial migration applied to the development database.
+- npm run db:seed: passed; one labeled unfinished example and answer stored.
+- npm run test:db: **6 passed against real PostgreSQL**, with a freshly created
+  disposable database and committed migration. Latest final run passed after
+  dependency/launcher fixes. Test database removed afterward.
+- Tests verify simultaneous creation replay, exact ordered snapshots, stale writes,
+  incomplete/completed transitions, identical retries, concurrent conflicting saves,
+  API and database foreign-key rejection, owner scoping, real history, cascade
+  deletion including a test report, and survival across actual API child-process
+  shutdown/restart. No claim of authentication or live AI verification.
+- npm test: **14 client + 32 server = 46 passed**. Six database tests intentionally
+  skipped in this command; run separately above. Combined executed total: **52**.
+  Client network calls are mocked; tests cover save/resume, retained failed-save
+  drafts, history errors/retry, deletion confirmation and prior interview journeys.
+- npm run lint: final pass without warnings (client, server, shared, scripts/seed).
+- npm run build: passed, 41 modules.
+- Final read-only HTTP smoke check: health returned storage postgresql; history\n  returned the one seeded development record; Vite /history returned HTTP 200.\n  PostgreSQL, API (3001) and frontend (5173) were left running for local review.\n- Nine docs Markdown files retained; all scanned local file links resolve.\n- No Phase 4 live browser visual check or new screenshot was performed. Automated
+  component journeys and real HTTP/database tests are distinct evidence.
+- Initial checks exposed a missing roleLabels re-export, missing generated migration
+  file, an unexported Vitest launcher path and a finally-block lint warning; all
+  fixed and the relevant checks rerun successfully. An overlapping install initially
+  failed; a sequential install succeeded and the root lockfile was synchronized.
+
+## Phase 4 limitations and dependency review
+
+No functional Phase 4 acceptance blocker remains. Unsaved edits can still be lost.
+Save explicitly; use History after refreshing. There is no cross-tab merge or
+automatic active-session restoration. Browser refresh/close prompts remain outside
+application control. Development identity is local-only, not a private account.
+
+npm audit reports **4 high-severity findings** in the Prisma tooling dependency
+chain: deepmerge-ts 7.1.5 / @prisma/config and mysql2 3.15.3 / prisma. The PostgreSQL
+application does not use MySQL connections or merge untrusted Prisma configuration.
+This narrows current exposure but does not erase the advisories. Scoped overrides
+were attempted, did not alter the resolved packages with this npm/workspace setup,
+and were removed. No forced major downgrade was performed. Recheck a compatible
+patched Prisma release before deployment and during the Phase 9 security review.
+Do not describe the dependency audit as clean.
+
+The pg 8.23.1 driver emits a queued-query deprecation warning through Prisma during
+some transaction reads. All real PostgreSQL tests pass. Stay on the locked versions
+and recheck compatibility before upgrading to pg 9. Prisma's older JavaScript
+generator is documented for future removal; a future major upgrade needs review.
+
+## Phase 4 documentation gate and learning checkpoint
+
+Updated README, roadmap, architecture, API, learning, progress, checklist,
+walkthrough, deployment and both workspace READMEs. Server environment example
+updated; client example reviewed and unchanged (VITE_API_URL contract is unchanged).
+Master prompt reviewed and preserved verbatim. The nine docs files remain consolidated.
+Phase 4 supersedes Phase 3's one-hour/500-record memory limits; earlier chapters
+below are historical. No cloud resources, publication, commits or pushes.
+
+Understand relational keys, migrations versus generation, async I/O, transactions,
+revision conflicts and idempotency. Practice saving an answer, restarting Express
+and resuming from History. Suggested commit:
+feat: persist interviews with Prisma and PostgreSQL and add history resume delete
+
+---
+
+## Historical checkpoints
+
+### Historical Phase 3.1 checkpoint
+
+**Phase 3.1 complete — 2026-10-08. Wait for “continue.”**
+Next unfinished phase: **Phase 4 — PostgreSQL persistence for expanded interviews**.
+PROJECT_BRIEF.md now contains the revised software developer scope. The original brief is retained in the historical appendix of PROJECT_BRIEF.md; original completed-phase tasks remain in REQUIREMENTS_CHECKLIST.md. Earlier milestones below are historical.
+
+## Phase 3.1 implementation
+
+- Inspected Phase 3 routes/services, state, UI, tests and prior verification.
+- Added shared/interviewOptions.js for four tracks, internship/junior experience,
+  type/difficulty, nine technical subjects including CN/OOP/DSA/DBMS/OS, eight
+  language choices including neutral, eleven technology choices and 3–10 count.
+- Setup supports balanced or explicit topic coverage, optional up-to-five
+  technologies and helpful coverage errors. Behavioral requires no technical topics.
+- Replaced positional bank IDs with 104 editorial IDs and applicability metadata.
+  Selection stays on the backend, respects track/subject, prioritizes specialist
+  matches and uses neutral concept questions for gaps. All eligible selected
+  subjects get a slot before repeats; mixed reserves ceil(count/2) technical slots.
+- Added experience-relative explanation instructions without senior assumptions.
+  Selected question snapshots remain stable throughout a session.
+- Extended strict validation and explicit old-client defaults. Canonical array
+  order preserves idempotency when equivalent selections arrive reordered.
+- Room/review show actual track/configuration and variable-length progress.
+  Fixed-bank source and fictional frontend example feedback remain explicit.
+- Completion uses the exact question set, not five. Request limit is now 256 KiB
+  for up to ten 3,000-unit answers including escaping. Storage remains in memory.
+- Shared ES module metadata avoids Node's ambiguous-package warning. Root lint
+  includes shared code. No dependencies, auth, database, AI or code execution added.
+
+## Actual verification
+
+- Final npm.cmd test passed: client 12 tests/3 files; server 32 tests/2 files,
+  44 total. Approved execution outside sandbox for workers and local test sockets.
+- Matrix checks: every track × level × difficulty × type × count from 3 through 10;
+  all offered languages with ten questions for each eligible individual subject.
+- HTTP checks: all four tracks and three types complete ten-question sessions;
+  incomplete completion rejected; retries stable; Unicode answers accepted.
+- Checks also cover all five selected core CS subjects, specialized React/Python
+  matching, neutral fallback, invalid count/scope/options/duplicates, defaulted
+  legacy frontend requests and reordered preference retries.
+- Frontend tests verify backend/junior/CN/Go/PostgreSQL setup and three-answer review,
+  subject-coverage errors and behavioral independence, plus existing Phase 3 journey.
+- Final npm.cmd run lint passed without warnings for client, server and shared.
+- Final npm.cmd run build passed: 41 modules.
+- Live browser: junior Backend Developer, CN only, Go/PostgreSQL preferences,
+  three real backend questions and successful completed review. Empty selected
+  subject set disabled Start and displayed guidance. No frontend substitution.
+- Live 390px setup inspected; document scrollWidth/clientWidth both 375px (scrollbar
+  excluded), no horizontal overflow. Desktop completion screenshot saved at
+  docs/screenshots/phase-3-1-completion.png. Browser session later disappeared before
+  viewport cleanup/marking; no live tab is claimed retained. Screenshot remains.
+- Initial backend test import failed due to incorrect shared relative path; fixed
+  and final suite passed. Initial lint unused variable removed. During browser
+  setup a second API launch found port 3001 in use; that attempted process was
+  stopped and the existing working API was used successfully. Frontend started on
+  5173 for the check. No unrelated processes were terminated.
+
+## Documentation gate
+
+Updated current master brief, roadmap, requirements checklist, README, architecture,
+API contracts, learning notes, the consolidated PROJECT_WALKTHROUGH.md,
+workspace READMEs and deployment notes. Environment examples reviewed: unchanged
+because there are no new variables. Original documents preserved for history.
+Phase 6 roadmap explicitly requires dynamic question generation, bounded follow-ups
+and subject-level analysis; Phase 7 uses JD/resume for that generation. AGENTS.md
+continues to require phase-by-phase evidence and documentation reconciliation.
+
+## Limits and learning checkpoint
+
+No Phase 3.1 blocker remains. Fixed-bank selection is deterministic, not AI. Only
+React/Python/Java/PostgreSQL have specialist prompts; other preferences fall back
+visibly to neutral concepts within the selected track/subjects. Depth is adjusted
+with bounded instructions on shared base prompts, not separate AI-generated banks.
+Balanced mode may not cover all subjects at small counts; use explicit selections
+to guarantee coverage. No senior interviews, candidate code execution, persistence,
+login, personal history, real feedback, uploads or voice have been introduced.
+Old active browser sessions from before the scope update should be finished or
+replaced with a fresh session; server restarts erase all in-memory sessions.
+
+Run: npm run dev:server and npm run dev in separate terminals. Try Mixed with three
+questions and CN/OOP/OS, observe the coverage error, then choose five and complete.
+Concepts: applicability metadata, stable IDs, normalization, round-robin coverage,
+parameterized testing. Read PROJECT_WALKTHROUGH.md (Phase 3.1 chapter) for the detailed explanation.
+Suggested commit: feat: expand interview tracks and subject configuration
+No commit, push, paid resource or publication performed.
+
+On next “continue”: implement Phase 4 only, preserving expanded configuration,
+exact ordered questions and topic metadata with PostgreSQL/Prisma. Keep provisional
+identity local. Do not start Clerk or Gemini prematurely.
+
+
+## Documentation cleanup — 2026-10-09
+
+Phase 3.1 remains complete; Phase 4 has not started. Nine Markdown files remain,
+each with a distinct purpose listed in README. The Phase 3.1 walkthrough is now
+inside PROJECT_WALKTHROUGH.md. The original brief remains verbatim in the master
+brief appendix. Original Phase 0–3 checked tasks remain in REQUIREMENTS_CHECKLIST.
+The earlier detailed audit is preserved below. Repeated obsolete checkpoints were
+replaced by the milestone table. Four superseded standalone documents and two
+unused early UI images were removed after preserving needed content. Milestone
+screenshots remain. Links and standing instructions were updated.
+
+Only documentation and unused image assets changed. Latest application checks are
+the recorded Phase 3.1 run: 44 tests, lint and build passed. They were not rerun
+for this documentation-only cleanup. Documentation links and checklist coverage
+were checked separately.
+
+## Earlier milestone record
+
+| Milestone | Completed work and recorded checks |
+| --- | --- |
+| Phase 0 | Vite structure, scripts, ignore/lint, Git initialized; install/dev/preview/build verified; no commit |
+| Visual follow-ups | Colors, hover/press feedback, persistent light/dark preference, reduced-motion rules |
+| Phase 1 | Five screens, routing, reusable controls; 1440px/390px/320px, keyboard/theme and build checks; screenshots retained |
+| Phase 2 | Local five-question journey, validation, answer mapping, leave guard; user-run 15/15 tests after selector correction; browser Back/discard verified |
+| Phase 3 | Express/in-memory sessions; 26/26 tests, lint/build, live completion/outage checks; detailed historical audit below |
+| Phase 3.1 | Expanded configuration; 44/44 tests and browser results above |
+
+Earlier execution restrictions were resolved through user-run or approved external
+test runs. Native refresh/close prompt presentation was not fully visually verified;
+handler and in-app navigation checks passed. No screen-reader certification,
+provider integration or deployment was claimed.
+## Historical Phase 1–3 audit
+
+Historical evidence from 2026-10-08, before Phase 3.1: references to 30 prompts, five questions, 128 KiB and 26 tests describe that older milestone. These checks were not rerun during the documentation cleanup.
+
+Date: 2026-10-08. Scope: the user's master prompt in the historical appendix of PROJECT_BRIEF.md, Phases 1–3,
+plus the Phase 0 foundation and documentation continuity.
+
+### Verdict
+
+**Phases 1, 2 and 3 meet their scoped requirements and acceptance criteria.**
+No outstanding phase-blocking implementation item was identified in this review.
+Phase 0 is also recorded complete. This is a scoped implementation review, not a
+claim that every possible bug has been ruled out or the complete product is ready.
+
+No application code changes were necessary for this audit. Documentation tracking
+was strengthened with AGENTS.md and REQUIREMENTS_CHECKLIST.md.
+
+### Evidence and verification boundaries
+
+- Inspected current routes, pages, shared controls, labels/focus/layout CSS,
+  session state, fetch/provider flow, server routes/controllers/services,
+  validation/errors, local-only startup, environment examples and tests.
+- Fresh npm.cmd test: **10 client tests and 16 server tests passed**, 4 files.
+  Executed with approved access outside the Windows sandbox because this project's
+  workers and local test sockets previously failed under sandbox restrictions.
+- Fresh npm.cmd run lint: passed for both workspaces.
+- Fresh npm.cmd run build: passed; 39 modules transformed.
+- Earlier recorded browser evidence was reviewed, not rerun during this audit:
+  Phase 1 navigation, keyboard, themes and narrow/wide layouts; Phase 2 answer
+  preservation and navigation guards; Phase 3 actual Express completion and outages.
+  See PROGRESS.md and screenshots in docs/screenshots/.
+- Frontend journey tests mock API calls. Backend tests exercise Express through
+  Supertest. The earlier live browser journey separately verifies integration.
+- Native refresh/close warning presentation remains browser-controlled. Prior
+  automation did not directly verify every native close/refresh dialog condition.
+  This is documented; it does not mean the implemented warning handler is absent.
+- No new accessibility certification, provider integration, deployment or database
+  verification is claimed. None is part of the current completed scope.
+
+### Phase 1 — interface
+
+| Master requirement | Evidence | Result |
+| --- | --- | --- |
+| Landing, setup, room, feedback, sample history | App.jsx route table and pages/ | Met |
+| Responsive layout | App.css grid/breakpoints; recorded 1440px, 390px and 320px checks | Met |
+| Labels, keyboard navigation, visible focus | ui.jsx labels, Layout skip link/focus, index.css focus-visible, prior browser checks | Met |
+| Reusable buttons, forms, cards, layout | components/ui.jsx and Layout.jsx | Met |
+| Clear navigation | Shared NavLink navigation and route recovery | Met |
+| Empty/error states | EmptyState, History toggle, NotFound, form/API errors | Met |
+| Honest integration claims | Layout notice, sample labels, separate actual answer review | Met |
+| All screens navigable | Route implementation and recorded browser journey | Met |
+| Narrow/wide acceptance | Earlier browser checks plus current CSS inspection | Met |
+| Production build | Fresh build passed | Met |
+| Explain components, props, routing, CSS | LEARNING.md and PROJECT_WALKTHROUGH.md | Met |
+
+The requested visual follow-ups also remain implemented: light/dark preference,
+hover/press feedback and reduced-motion support. These are visual interactions,
+not device vibration.
+
+### Phase 2 — local interview journey
+
+| Master requirement | Evidence | Result |
+| --- | --- | --- |
+| Fixed question bank | 30 prompts, now in server/src/data/questions.js | Met; moved in Phase 3 |
+| Role/type/difficulty | Setup controls; frontend role is the intentionally supported starting scope | Met |
+| One question at a time | Interview.jsx uses session.index | Met |
+| Collect answers and progress | Controlled textarea, reducer, derived answeredCount | Met |
+| Preserve answers on movement | Answers keyed by ID; current passing journey test | Met |
+| Empty/overlong validation | session.js and current journey test; backend duplicates checks | Met |
+| Completion and labeled sample feedback | Five-question journey and Feedback.jsx | Met |
+| Abandonment warning | AbandonGuard, passing guard test, recorded browser Back/discard check | Met with browser prompt limitation |
+| Five-question completion | Passing current journey test; earlier live completion | Met |
+| Correct answer/question mapping | ID-based state and edited-answer assertions | Met |
+| No backend or AI required at Phase 2 | Original Phase 2 implementation and recorded 15-test user run | Met at that milestone; backend independence superseded by Phase 3 |
+| Explain state, controlled inputs, handlers, derived values | Learning notes and walkthrough | Met |
+
+Do not add an offline fallback just to recreate the earlier milestone: Phase 3
+explicitly requires real backend requests. The current app requires Express; no AI
+provider is required. Permanent storage and additional job roles were not Phase 2
+requirements for the chosen initial frontend-developer scope.
+
+### Phase 3 — Express integration
+
+| Master requirement | Evidence | Result |
+| --- | --- | --- |
+| Organized Express routes/controllers/services | server/src corresponding folders and app/index separation | Met |
+| /api/v1 endpoints and health | app.js and routes/interviews.js; API test | Met |
+| Backend questions | Service selects bank; frontend start fetch; recorded live journey | Met |
+| Accept answers and complete | PUT answers and POST complete; atomic validation/write | Met |
+| Document temporary memory | Service Map, expiry/cap; UI notice, README, API, walkthrough | Met |
+| Request validation | Strict Zod shapes plus question membership/completion rules | Met |
+| Body-size limits | 128 KiB JSON parser; oversized and Unicode tests | Met |
+| Consistent errors | Shared error middleware, status/code/message/details | Met |
+| Explicit CORS allowlist | Exact permitted local origins and rejection tests | Met |
+| Loading, retry, errors | busy state, lock, error messages, timeout; passing failure/retry tests | Met |
+| Duplicate-safe submission | Creation UUID replay; immutable idempotent completion; concurrent API tests | Met |
+| Keep unauthenticated version local | Loopback bind; production guard; restricted origin configuration | Met |
+| Real data exchange acceptance | Inspected fetch/service flow; prior actual browser completion | Met |
+| Useful invalid-request errors | Fresh API tests for schemas, malformed JSON, IDs and state | Met |
+| Understandable outages | Fresh mocked client tests plus recorded live stopped-server check | Met |
+| Relevant API tests | Fresh 16/16 backend tests | Met |
+| Explain HTTP, REST, JSON, status, fetch, CORS | Learning notes and walkthrough | Met |
+
+### Remaining work belongs to later phases
+
+| Limitation | Assigned work |
+| --- | --- |
+| Refresh loses browser session; server restart/expiry loses records | Phase 4 persistence and resume |
+| History is fictional; no server deletion flow | Phase 4 real history and deletion |
+| Partial-answer API exists but UI does not autosave | Address draft-saving strategy with Phase 4 resume |
+| No login or private ownership enforcement | Phase 5 |
+| Feedback scores/comments are fictional | Phase 6 |
+| No personalized files/questions or voice | Phases 7 and 8 |
+| No consolidated CI/security verification or public hosting | Phases 9 and 10 |
+| No final portfolio release | Phase 11 |
+
+Do not count these as missing Phase 1–3 tasks or mark them implemented early.
+No automatic Git commits have been made, as requested. The lockfile exists in the
+workspace; committing it remains a user-authorized version-control action.
+
+### Documentation closeout rule
+
+After every phase, reconcile the master prompt against REQUIREMENTS_CHECKLIST.md,
+record evidence and unresolved items, update the current progress/roadmap and
+walkthrough, and review all affected setup, architecture, learning, API, deployment
+and environment documentation. AGENTS.md makes this a standing project instruction.
+
+The next implementation phase remains **Phase 4**, only when the user continues.
+

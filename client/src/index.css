@@ -1,0 +1,74 @@
+:root {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  --text: #f4f2ff;
+  --page: #111321;
+  --text-muted: #babacf;
+  --accent: #c4b5fd;
+  --border: #38384f;
+  --warm: #ddc5ad;
+  --focus: #ffd0a9;
+  --badge-text: #d7cafb;
+  --badge-bg: #c4b5fd12;
+  --badge-border: #c4b5fd38;
+  --surface: #202033;
+  --card-start: #2b263e;
+  --card-end: #202233;
+  --card-border: #55506b;
+  --card-hover: #a594cc;
+  --success: #a8e8c8;
+  --success-dot: #9ae3bd;
+  --button-bg: #c4b5fd;
+  --button-text: #21183d;
+  --button-hover: #d4c8ff;
+  --button-shadow: #736197;
+  --glow-purple: #7560bd26;
+  --glow-peach: #d19c7920;
+  color: var(--text);
+  background: var(--page);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+  line-height: 1.6;
+}
+/* Semantic tokens keep future components independent of the selected palette. */
+:root[data-theme='light'] {
+  --text: #252238;
+  --page: #faf8ff;
+  --text-muted: #605b73;
+  --accent: #6743a3;
+  --border: #ded6e9;
+  --warm: #855637;
+  --focus: #7746b7;
+  --badge-text: #65438b;
+  --badge-bg: #eee6f8;
+  --badge-border: #d9c9ed;
+  --surface: #ffffff;
+  --card-start: #f0e9fb;
+  --card-end: #fff5ed;
+  --card-border: #d4c5e5;
+  --card-hover: #8964b1;
+  --success: #276246;
+  --success-dot: #32815a;
+  --button-bg: #6845a3;
+  --button-text: #ffffff;
+  --button-hover: #7955b6;
+  --button-shadow: #452b70;
+  --glow-purple: #b89ade1c;
+  --glow-peach: #eaba9620;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-width: 0;
+  background:
+    radial-gradient(ellipse at 85% 10%, var(--glow-purple), transparent 50%),
+    radial-gradient(ellipse at 0% 70%, var(--glow-peach), transparent 50%);
+}
+a { color: inherit; }
+button { font: inherit; }
+:where(a, summary, button, select, textarea):focus-visible { outline: 3px solid var(--focus); outline-offset: 6px; }
+h1, h2, p { margin-top: 0; }
+::selection { background: var(--accent); color: var(--page); }
+

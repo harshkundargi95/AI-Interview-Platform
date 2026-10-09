@@ -1,0 +1,13 @@
+import { createDatabase } from '../src/database.js'
+import { createPersistentInterviewService } from '../src/services/persistentInterviews.js'
+import { preferencesSchema } from '../src/validation.js'
+const db = createDatabase()
+try {
+  const service = createPersistentInterviewService(db)
+  const preferences = preferencesSchema.parse({ role: 'general', type: 'technical', difficulty: 'foundations', questionCount: 3 })
+  const { session } = await service.create({ requestId: '04e38f50-e512-4ce2-967f-502ae7a327c1', preferences })
+  if (session.status === 'active' && !Object.keys(session.answers).length) {
+    await service.save(session.id, [{ questionId: session.questions[0].id, text: 'Development seed example — replace this practice answer with your own.' }], session.revision)
+  }
+  console.log('Development seed ready. One unfinished example; no AI feedback or scores.')
+} finally { await db.$disconnect() }
