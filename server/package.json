@@ -15,6 +15,7 @@
     "test:db": "node scripts/test-database.js"
   },
   "dependencies": {
+    "@clerk/express": "^2.1.77",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "dotenv": "^18.0.6",

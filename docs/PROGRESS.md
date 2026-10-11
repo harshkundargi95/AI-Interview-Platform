@@ -2,6 +2,128 @@
 
 ## Current checkpoint
 
+**Phase 5 complete — 2026-10-11.**
+The user confirmed “its working properly” after the live verification instructions.
+Live acceptance is user-reported; the assistant did not interact with Google OAuth
+or independently observe each manual step. Two-account isolation is additionally
+covered by the passing automated PostgreSQL/Clerk verification tests.
+All 67 automated tests, lint and build passed. Configuration and Google enablement
+were checked directly without exposing keys. Next: Phase 6, only after the user
+asks to continue. No commit or push performed.
+
+The checks below preceded the user's successful confirmation. Any pending live
+statements in that verification history are superseded by this checkpoint.
+
+### Local verification — 2026-10-11
+
+- Started local PostgreSQL, API and Vite after finding the app/API unreachable.
+- Frontend /, /sign-in, /setup and /history return HTTP 200 (HTML delivery, not a
+  visual or authenticated route check). API health returns 200 with PostgreSQL
+  and Clerk; unauthenticated interview requests return AUTH_REQUIRED / 401.
+- Public Clerk environment responds 200 and reports Google enabled. Key presence
+  and matching checked without printing values; no client secret variable found.
+- npm test passed: 20 client + 37 server. Initial frontend worker startup was
+  slow (about 91 seconds total); a single-thread diagnostic rerun also passed.
+- npm run test:db passed all 10 tests against an isolated disposable database;
+  lint and production build passed. Existing pg deprecation warning remains.
+- Local env, database and node_modules paths remain Git-ignored. Restored the
+  missing client/.env.example with placeholders, preserving the configured .env.
+- Browser interaction tools were unavailable: no visual inspection or actual
+  Google login is claimed. Requested opening /sign-in in the preview.
+- Live gate remains open; no production code changes, commit or push performed.
+
+## Phase 5 implementation
+
+- Installed official @clerk/react 6.17.7 and @clerk/express 2.1.77. Consulted current
+  official React, Express getAuth/clerkMiddleware and Google social-connection docs.
+- Added ClerkProvider, account context, SignIn/SignUp screens, protected routes,
+  header account controls and sign-out confirmation for unsaved drafts.
+- Google is supported by the prebuilt screens once enabled for sign-up/sign-in in
+  Clerk SSO connections. Actual provider connection and Google OAuth remain unverified.
+- API clients obtain fresh bearer session tokens and check account identity before
+  and after token retrieval. Cookies are omitted from API requests. Missing tokens
+  and 401 responses fail safely with useful messages.
+- Account changes/sign-out remount private UI state and invalidate pending responses.
+  A failed save while the same identity remains preserves the draft; sign-out
+  intentionally clears it. Saved data stays in PostgreSQL.
+- Express verifies tokens with the official SDK, accepts session tokens only,
+  requires an allowed azp origin and rejects cookie-only API authentication.
+  Health and preflight remain public. CORS permits Authorization.
+- Added Prisma User mapping from verified Clerk subject to internal owner ID.
+  Every create/list/read/save/complete/delete and nested report is owner-scoped.
+  Spoofed JSON/query identities are rejected; identity headers are ignored.
+- Migration 202610100001_clerk_users preserves all Phase 4 owners as legacy Users
+  before adding the owner foreign key. No real account automatically claims them.
+- Removed the persistent service's default local-development owner. Normal API
+  startup requires Clerk configuration. Old Map fixtures require the test runner.
+  Production/remote database deployment remains disabled pending Phase 10.
+- No AI, uploads, voice, cloud deployment, commit or push performed in this phase.
+  The earlier Phase 4 commit/push was separately authorized and completed.
+
+## Phase 5 actual checks
+
+- Prisma generation succeeded; the user-ownership migration applied to the existing
+  local development database. No database reset or legacy record reassignment.
+- npm test: **20 frontend + 37 server = 57 passed**. The ten database tests are
+  intentionally skipped in this command and run separately below.
+- npm run test:db: **10 passed with real PostgreSQL**, using a fresh disposable
+  database with both migrations. Includes prior persistence/restart tests plus
+  authenticated A/B access to history/read/save/complete/delete and report content,
+  forged owner fields, preserved legacy rows and rejected expired-token mutations.
+- Authentication tests use ephemeral RSA keys and real Clerk SDK verification:
+  missing/cookie-only, expired, malformed, forged, missing/wrong azp rejected;
+  verified subject mapping, allowed bearer preflight and public health checked.
+  These are signed test tokens, not sessions issued by the live Clerk service.
+- Frontend tests cover protected/unconfigured/loading states, fresh bearer headers,
+  missing tokens/401 handling, clearing A's draft on B's sign-in, and confirmation
+  before sign-out. Full previous interview journeys still pass.
+- npm run lint: passed. npm run build: passed, 114 modules.
+- Initial frontend tests found three remaining calls to the old API singleton;
+  fixed them to use the account-bound API. The full typing/routing journey exceeded
+  the former five-second test deadline; integration timeout is now 15 seconds.
+  Final rerun passed all tests. This was not a production request-timeout change.
+- Final documentation checks: nine docs Markdown files, no missing local file links.
+  Local .env files, node_modules and database files remain Git-ignored. Built client
+  contained neither Clerk secret-key patterns nor the synthetic server test key.
+- No actual Google login, live Clerk-issued token or new visual browser check is
+  claimed. The account settings and first real login require user configuration.
+
+## Historical live verification instructions (user subsequently confirmed success)
+
+1. Use one Clerk application for client and server keys. Put the public key in
+   VITE_CLERK_PUBLISHABLE_KEY (client/.env) and CLERK_PUBLISHABLE_KEY (server/.env);
+   put CLERK_SECRET_KEY only in server/.env. Never send keys in chat.
+2. Enable Google for sign-up/sign-in in Clerk SSO connections.
+3. Restart Vite/API, use a regular browser at /sign-in, sign in with Google,
+   then create/save/resume an interview.
+4. Sign out and verify a second account has its own history. Record actual results.
+5. Update this checkpoint and the remaining live checklist gate; then stop before
+   Phase 6 until the user says continue.
+
+The known Phase 4 Prisma tooling advisories and pg queued-query deprecation remain.
+The phase still uses a local-only database/API; authenticated does not mean deployed.
+Unsaved edits may be lost on sign-out/refresh; there is no autosave or cross-tab merge.
+Development Google shared credentials are not production OAuth configuration.
+
+## Phase 5 documentation and learning checkpoint
+
+Updated README, API, architecture, deployment, roadmap, checklist, progress, learning,
+walkthrough, client/server READMEs and both .env.example files. Nine docs Markdown
+files retained. Master prompts preserved; the user's Google addition is tracked in
+the checklist and Phase 5 walkthrough. Earlier phase notes below are historical.
+
+Understand authentication versus authorization, session-token verification, public
+versus secret configuration, database user mapping and account-isolated browser state.
+Practice with two browser profiles and explain why knowing another interview UUID
+cannot grant access. Suggested commit when ready:
+feat: add Clerk authentication, Google sign-in and private interview ownership
+
+---
+
+## Historical Phase 4 checkpoint
+
+### Phase 4 status at completion
+
 **Phase 4 complete — 2026-10-09. Stop at the learning checkpoint.**
 Next unfinished phase: **Phase 5 — authentication and authorization**.
 The project folder is now C:/Users/harsh/Desktop/AI interview project; this chat
@@ -48,7 +170,11 @@ existing renamed project with approved filesystem access; no duplicate was creat
   drafts, history errors/retry, deletion confirmation and prior interview journeys.
 - npm run lint: final pass without warnings (client, server, shared, scripts/seed).
 - npm run build: passed, 41 modules.
-- Final read-only HTTP smoke check: health returned storage postgresql; history\n  returned the one seeded development record; Vite /history returned HTTP 200.\n  PostgreSQL, API (3001) and frontend (5173) were left running for local review.\n- Nine docs Markdown files retained; all scanned local file links resolve.\n- No Phase 4 live browser visual check or new screenshot was performed. Automated
+- Final read-only HTTP smoke check: health returned storage postgresql; history
+  returned the one seeded development record; Vite /history returned HTTP 200.
+  PostgreSQL, API (3001) and frontend (5173) were left running for local review.
+- Nine docs Markdown files retained; all scanned local file links resolve.
+- No Phase 4 live browser visual check or new screenshot was performed. Automated
   component journeys and real HTTP/database tests are distinct evidence.
 - Initial checks exposed a missing roleLabels re-export, missing generated migration
   file, an unexported Vitest launcher path and a finally-block lint warning; all

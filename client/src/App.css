@@ -194,3 +194,10 @@ progress::-moz-progress-bar { background: var(--accent); }
 .choice-group input { flex: 0 0 auto; margin-top: 4px; accent-color: var(--accent); }
 .choice-group input:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .session-summary { overflow-wrap: anywhere; }
+
+/* Account controls reuse the existing theme and responsive layout. */
+.header-actions, .account-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.account-controls { position: relative; }
+.signout-confirm { width: min(100%, 380px); padding: 16px; border: 1px solid var(--border); background: var(--surface); border-radius: 12px; }
+.auth-panel { display: flex; justify-content: center; width: 100%; padding: 16px 0; }
+.auth-panel > div { max-width: 100%; }

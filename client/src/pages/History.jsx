@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Button, Card, EmptyState, PageHeading } from '../components/ui.jsx'
-import { interviewApi } from '../interview/api.js'
+import { useAuthState } from '../auth/context.js'
 import { useInterview } from '../interview/useInterview.js'
 import { roleLabels, typeLabels } from '../interview/questions.js'
 
 export default function History() {
+  const { api: interviewApi } = useAuthState()
   const [page, setPage] = useState({ items: [], hasMore: false })
   const [skip, setSkip] = useState(0)
   const [refresh, setRefresh] = useState(0)
@@ -21,7 +22,7 @@ export default function History() {
       if (active) { setPage(result); setLoading(false) }
     }).catch(error => { if (active) { setError(error.message); setLoading(false) } })
     return () => { active = false }
-  }, [skip, refresh])
+  }, [skip, refresh, interviewApi])
   function reload(nextSkip = skip) {
     setError(''); setLoading(true); setSkip(nextSkip); setRefresh(value => value + 1)
   }
@@ -39,7 +40,7 @@ export default function History() {
   }
   return <>
     <PageHeading eyebrow="04 / Return" title="Your practice, in perspective.">Resume saved work or revisit your completed answers.</PageHeading>
-    <p className="small-note">Real PostgreSQL records for this local development workspace. Sign-in and private accounts arrive in Phase 5. No AI scores yet.</p>
+    <p className="small-note">Your saved interviews. Only your signed-in account can access these records. No AI scores yet.</p>
     <div className="history-toolbar"><h2>Interview history</h2><Button variant="secondary" disabled={loading || busy || Boolean(deleting)} onClick={() => reload()}>Refresh history</Button></div>
     {loading && <p role="status">Loading saved interviews…</p>}
     {(error || requestError) && <p role="alert" className="form-error">{error || requestError}</p>}

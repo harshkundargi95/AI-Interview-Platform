@@ -125,23 +125,39 @@ Acceptance:
 - [x] Answers cannot be attached to unrelated questions.
 - [x] Invalid session transitions are rejected.
 
+## Phase 5 evidence and live gate
+
+- Official Clerk React/Express SDKs; fresh bearer tokens; SDK signature/lifetime
+  verification and explicit authorized-party checks; JSON 401 failures.
+- User migration and verified subject mapping; owner-scoped operations including
+  nested feedback; old shared local records kept separate as legacy users.
+- Protected screens, sign-out confirmation, account-state clearing and useful
+  expired-session errors with retained drafts until identity changes.
+- 57 ordinary tests and ten real PostgreSQL tests passed; lint/build passed.
+  Authentication fixtures use ephemeral signed JWTs verified by the real SDK.
+- [x] Google sign-in integration through Clerk prebuilt screens and setup docs.
+- [x] Live acceptance: user confirmed “its working properly” on 2026-10-11 after
+  receiving the Google sign-in, save/resume and second-account checklist. This is
+  user-reported acceptance, not assistant-observed browser verification of each
+  step. Automated cross-account tests passed separately; see PROGRESS.md.
+
 ## Phase 5 — Authentication and authorization
 
 Integrate Clerk using current official documentation.
 
-- [ ] Verify tokens on Express.
-- [ ] Map verified identities to database users.
-- [ ] Derive ownership from the authenticated session.
-- [ ] Never trust client-supplied user IDs.
-- [ ] Scope every read, write, report, and deletion to its owner.
-- [ ] Protect UI routes and handle expired sessions.
-- [ ] Disable provisional development identity in production.
+- [x] Verify tokens on Express.
+- [x] Map verified identities to database users.
+- [x] Derive ownership from the authenticated session.
+- [x] Never trust client-supplied user IDs.
+- [x] Scope every read, write, report, and deletion to its owner.
+- [x] Protect UI routes and handle expired sessions.
+- [x] Disable provisional development identity in production.
 
 Acceptance:
-- [ ] Users can access their own interviews.
-- [ ] Unauthenticated requests fail safely.
-- [ ] User A cannot read, modify, or delete User B’s records.
-- [ ] Access-control tests pass.
+- [x] Users can access their own interviews.
+- [x] Unauthenticated requests fail safely.
+- [x] User A cannot read, modify, or delete User B’s records.
+- [x] Access-control tests pass.
 
 ## Phase 6 — AI questions and answer analysis
 

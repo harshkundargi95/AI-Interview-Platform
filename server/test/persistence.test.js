@@ -1,3 +1,4 @@
+import { authEnvironment, tokenFor } from './auth-fixture.js'
 import { randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -13,7 +14,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('real PostgreSQL persistence', (
   const preferences = preferencesSchema.parse({ role: 'backend', type: 'technical', difficulty: 'foundations', subjects: ['cn'], topicMode: 'selected', questionCount: 3 })
   const start = () => service.create({ requestId: randomUUID(), preferences })
   const answers = session => session.questions.map(q => ({ questionId: q.id, text: 'Explain ' + q.subject }))
-  beforeAll(async () => { db = createDatabase(process.env.TEST_DATABASE_URL); service = createPersistentInterviewService(db); app = createApp({ service }) })
+  beforeAll(async () => { db = createDatabase(process.env.TEST_DATABASE_URL); await db.user.upsert({ where: { id: 'persistence-test-owner' }, create: { id: 'persistence-test-owner', clerkUserId: 'user_persistence' }, update: {} }); service = createPersistentInterviewService(db, 'persistence-test-owner'); app = createApp({ service }) })
   afterAll(async () => { await db?.$disconnect() })
 
   it('deduplicates concurrent starts and freezes exact ordered question metadata', async () => {
@@ -79,7 +80,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('real PostgreSQL persistence', (
     const saved = await service.save(session.id, answers(session).slice(0, 1), 0)
     async function boot() {
       const child = spawn(process.execPath, ['src/index.js'], {
-        env: { ...process.env, DATABASE_URL: process.env.TEST_DATABASE_URL, PORT: '43193', NODE_ENV: 'development' },
+        env: { ...process.env, ...authEnvironment, DATABASE_URL: process.env.TEST_DATABASE_URL, PORT: '43193', NODE_ENV: 'development' },
         windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
       })
       await new Promise((resolve, reject) => {
@@ -93,7 +94,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('real PostgreSQL persistence', (
     for (let run = 0; run < 2; run++) {
       const child = await boot()
       try {
-        const response = await fetch('http://127.0.0.1:43193/api/v1/interviews/' + session.id)
+        const response = await fetch('http://127.0.0.1:43193/api/v1/interviews/' + session.id, { headers: { Authorization: 'Bearer ' + tokenFor('user_persistence') } })
         expect((await response.json()).data).toEqual(saved)
       } finally { const exited = once(child, 'exit'); child.kill(); await exited }
     }

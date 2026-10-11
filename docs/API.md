@@ -1,14 +1,16 @@
-# Local API — Phase 4
+# Local API — Phase 5
 
-Base URL: http://127.0.0.1:3001/api/v1. No authentication yet; local use only.
-All routes use the server's provisional local-development owner, never an owner
-supplied by the browser. POST/PUT require JSON; body limit is 256 KiB.
+Base URL: http://127.0.0.1:3001/api/v1. Clerk authentication is required for all
+/interviews routes. Send Authorization: Bearer <Clerk session token>. Health and
+preflight do not require sign-in. Cookies alone never authorize API calls.
+Ownership comes from the verified Clerk subject mapped to a database User; never
+send ownerId or userId in a request body/query. POST/PUT require JSON, max 256 KiB.
 Success envelope: { "data": ... }. Error envelope: { "error": { "code", "message",
 "details" } }; details is optional.
 
 | Method/path | Request | Result |
 | --- | --- | --- |
-| GET /health | None | 200 after SELECT 1; storage postgresql, authentication none-local-only |
+| GET /health | None | 200 after SELECT 1; storage postgresql, authentication clerk |
 | POST /interviews | requestId UUID, preferences | 201 new; 200 matching retry |
 | GET /interviews | skip 0–100000, take 1–50; defaults 0/20 | { items, hasMore } newest first |
 | GET /interviews/:id | UUID | Exact saved snapshot |
@@ -55,8 +57,8 @@ first response was lost. Completed answers are immutable. Same-key creation is
 protected by a durable owner/requestId unique key while the interview exists.
 Deleting an interview also deletes its key; replay after deletion can create anew.
 
-Errors: 400 validation/invalid JSON/duplicate or unrelated questions; 403 rejected
-origin; 404 missing interview or route; 409 stale revision, request-key reuse,
+Errors: 401 AUTH_REQUIRED for missing/invalid/expired sessions; 400 validation/invalid JSON/duplicate or unrelated questions; 403 rejected
+origin; 404 missing or other-user interview, or missing route; 409 stale revision, request-key reuse,
 incomplete interview, immutable completion or exhausted write conflict; 413 body
 too large; 415 JSON required; 500 unexpected/database failures. Database failures
 never silently switch storage to memory. The UI retains unsaved answers on failures.
@@ -65,9 +67,21 @@ never silently switch storage to memory. The UI retains unsaved answers on failu
 
 Allowed origins: http://127.0.0.1:5173, http://localhost:5173,
 http://127.0.0.1:4173, http://localhost:4173. CORS_ORIGINS can narrow this list.
-Preflight allows GET, POST, PUT, DELETE, OPTIONS and Content-Type.
-Requests without Origin are allowed for local clients. No cookies are used.
+Preflight allows GET, POST, PUT, DELETE, OPTIONS with Content-Type and Authorization.
+Requests without Origin still require an authorized-party Clerk token. No cookies
+authorize this API. The Clerk frontend manages its own provider session.
 CORS is not authentication. Records persist until explicitly deleted.
+
+## Authentication details
+
+The official Express SDK validates session tokens. azp must match a configured local
+frontend origin. The verified subject is upserted as User.clerkUserId; its internal
+ID scopes every interview operation and the nested feedback report. Wrong-owner
+reads/writes/deletes return 404 without leaking whether the record exists.
+A 401 leaves the current browser draft intact until sign-out/account change. Sign
+out and sign in again when needed; copy unsaved edits before doing so.
+Legacy Phase 4 records are retained separately and cannot be claimed through sign-in.
+No Google password or OAuth provider access token is sent to this API.
 
 ## Preference contract (retained from Phase 3.1)
 

@@ -26,8 +26,9 @@ function checkedAnswers(row, answers, requireAll) {
 }
 const sameAnswers = (row, answers) => row.answers.length === answers.length && answers.every(a => row.answers.some(b => a.questionId === b.questionId && a.text === b.text))
 
-export function createPersistentInterviewService(db, ownerId = 'local-development') {
-  // This identity comes only from server configuration, never from a request.
+export function createPersistentInterviewService(db, ownerId) {
+  if (!ownerId) throw new Error('A verified database owner is required.')
+  // Request handlers supply the mapped user ID only after Clerk verifies the session.
   async function transaction(operation) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try { return await db.$transaction(operation, { isolationLevel: 'Serializable' }) }

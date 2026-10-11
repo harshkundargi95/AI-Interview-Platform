@@ -30,7 +30,7 @@ export default function Setup() {
     <div className="content-grid">
       <Card aria-labelledby="setup-title">
         <h2 id="setup-title">Interview preferences</h2>
-        <p className="muted">Fixed-bank practice, not AI-generated questions. Drafts stay in this tab until completion.</p>
+        <p className="muted">Fixed-bank practice, not AI-generated questions. Use Save progress to preserve unfinished answers.</p>
         <form onSubmit={start}>
           <div className="form-stack">
             <SelectField id="role" name="role" label="Job role" value={preferences.role} onChange={change} disabled={busy}>{options(roleLabels)}</SelectField>
@@ -55,7 +55,7 @@ export default function Setup() {
       </Card>
       <aside className="stack" aria-label="Session guidance">
         <Card className="tinted-card"><p className="eyebrow">Room to think</p><h2>A calm space to practice.</h2><ul className="guidance-list"><li>3–10 questions, no timer.</li><li>Go back to refine earlier answers.</li><li>Discuss code or pseudocode; code is not executed.</li><li>Feedback is a labeled sample, not an AI assessment.</li></ul></Card>
-        <Card><h3>Start with text</h3><p>No account or API key is needed. Answers go only to the local Express server. Saved answers persist in PostgreSQL and can be resumed from History. Save progress before refreshing to keep your latest edits.</p></Card>
+        <Card><h3>Start with text</h3><p>Your signed-in account owns each interview. Answers go only to the local Express server. Saved answers persist in PostgreSQL and can be resumed from History. Save progress before refreshing to keep your latest edits.</p></Card>
       </aside>
     </div>
   </>

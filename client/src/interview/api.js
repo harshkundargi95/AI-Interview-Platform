@@ -4,17 +4,18 @@ export class RequestError extends Error {
   constructor(message, code) { super(message); this.code = code }
 }
 
-export async function request(path, { method = 'GET', body } = {}) {
+export async function request(path, { method = 'GET', body, token } = {}) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 10000)
   try {
     const response = await fetch(`${API_URL}${path}`, {
       method, signal: controller.signal,
-      headers: body ? { 'Content-Type': 'application/json' } : {},
+      headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: 'Bearer ' + token } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
       credentials: 'omit',
     })
     const payload = await response.json()
+    if (response.status === 401) throw new RequestError('Your session expired. Sign out and sign in again. Saved answers are safe; copy unsaved edits before signing out.', 'AUTH_REQUIRED')
     if (!response.ok) throw new RequestError(payload.error?.message || 'The server could not process the request.', payload.error?.code)
     if (!payload.data) throw new RequestError('The server returned an unexpected response. Please retry.', 'INVALID_RESPONSE')
     return payload.data
@@ -27,14 +28,27 @@ export async function request(path, { method = 'GET', body } = {}) {
   }
 }
 
-export const interviewApi = {
-  history: (skip = 0) => request('/interviews?skip=' + skip),
-  read: id => request('/interviews/' + id),
-  remove: id => request('/interviews/' + id, { method: 'DELETE' }),
-  save: (id, answers, revision) => request('/interviews/' + id + '/answers', { method: 'PUT', body: { revision, answers: Object.entries(answers).filter(([, text]) => text.trim()).map(([questionId, text]) => ({ questionId, text })) } }),
-  start: (requestId, preferences) => request('/interviews', { method: 'POST', body: { requestId, preferences } }),
-  complete: (id, answers, revision) => request(`/interviews/${id}/complete`, {
+export function createInterviewApi(getToken) {
+  async function authorizedRequest(path, options = {}) {
+    let token
+    try { token = await getToken() }
+    catch { throw new RequestError("Could not refresh your session. Retry, or sign in again; copy unsaved edits before signing out.", "AUTH_REQUIRED") }
+    if (!token) throw new RequestError("Sign in again to continue. Copy unsaved edits before signing out.", "AUTH_REQUIRED")
+    return request(path, { ...options, token })
+  }
+  return {
+  history: (skip = 0) => authorizedRequest('/interviews?skip=' + skip),
+  read: id => authorizedRequest('/interviews/' + id),
+  remove: id => authorizedRequest('/interviews/' + id, { method: 'DELETE' }),
+  save: (id, answers, revision) => authorizedRequest('/interviews/' + id + '/answers', { method: 'PUT', body: { revision, answers: Object.entries(answers).filter(([, text]) => text.trim()).map(([questionId, text]) => ({ questionId, text })) } }),
+  start: (requestId, preferences) => authorizedRequest('/interviews', { method: 'POST', body: { requestId, preferences } }),
+  complete: (id, answers, revision) => authorizedRequest(`/interviews/${id}/complete`, {
     method: 'POST',
     body: { revision, answers: Object.entries(answers).map(([questionId, text]) => ({ questionId, text })) },
   }),
 }
+
+}
+
+// Tests may mock this object; the application creates a token-bound API per account.
+export const interviewApi = createInterviewApi(async () => null)

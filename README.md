@@ -1,7 +1,7 @@
 # Interview Practice
 
 A full-stack learning project for software developer internships and junior roles.
-**Current milestone: Phase 4 complete — PostgreSQL persistence, history, resume and deletion.**
+**Current milestone: Phase 5 complete; live operation confirmed by the user on 2026-10-11.**
 
 ## What works
 
@@ -12,7 +12,7 @@ A full-stack learning project for software developer internships and junior role
 - Duplicate-safe starts and completion; backend validation and bounded requests.
 - Responsive interface, light/dark toggle, accessible controls and motion preferences.
 - Real PostgreSQL history, explicit Save progress, resume and deletion.
-- Feedback illustrations stay fictional. No AI or sign-in yet.
+- Clerk account screens, Google sign-in support and private interview ownership. Feedback illustrations stay fictional; no AI yet.
 
 ## Run locally
 
@@ -25,11 +25,43 @@ First-time setup:
 npm ci
 npm run db:generate
 Copy-Item server/.env.example server/.env
+Copy-Item client/.env.example client/.env
 ```
 
 Copy the example only when server/.env does not already exist; preserve existing
 configuration. A local example .env was created during Phase 4 setup on this machine.
 The documented development password is local-only, not a production credential.
+
+
+## Clerk and Google sign-in setup
+
+1. Create or select a development application in the [Clerk dashboard](https://dashboard.clerk.com/).
+2. In **SSO connections**, add **Google** for all users and enable it for sign-up
+   and sign-in. Development instances can use Clerk's shared Google OAuth
+   credentials; production requires your own Google OAuth configuration.
+3. Add the **same application's** publishable key to both files:
+   - client/.env: VITE_CLERK_PUBLISHABLE_KEY
+   - server/.env: CLERK_PUBLISHABLE_KEY
+4. Add CLERK_SECRET_KEY only to server/.env. Never put it in VITE_* or paste it
+   into chat, source files or version control. Both .env files are ignored.
+5. Restart the API and Vite after changing keys. Open /sign-in in Chrome, Edge,
+   Firefox or another regular browser, then choose Google. Embedded app browsers
+   may be rejected by Google OAuth.
+6. Sign in, create a new interview and verify Save progress → History → Resume.
+   Sign out and use a second account; the first account's interviews must be absent.
+
+The prebuilt Clerk SignIn/SignUp screens display enabled social providers, including
+Google. The app does not handle your Google password or store Google access tokens.
+No extra Google scopes are requested by application code.
+
+Missing keys fail closed: the frontend shows setup guidance, and normal API startup
+requires real Clerk configuration. There is no development-identity bypass.
+Old Phase 4 records stay in PostgreSQL under legacy users and are not automatically
+claimed by a new sign-in. New accounts begin with their own history.
+
+References: [React setup](https://clerk.com/docs/react/getting-started/quickstart),
+[Express verification](https://clerk.com/docs/reference/express/clerk-middleware),
+[Google configuration](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google).
 
 Terminal 1 — keep the database running:
 
@@ -45,12 +77,11 @@ Terminal 2 — initialize the schema, optionally seed, then start Express:
 
 ```powershell
 npm run db:migrate
-npm run db:seed
 npm run dev:server
 ```
 
-Migrations are repeatable; the seed creates one labeled unfinished development
-example and does not overwrite existing edited answers. No AI feedback is seeded.
+Migrations preserve existing records. Optional db:seed creates a legacy example,
+not a record belonging to a signed-in account. It is unnecessary for normal use.
 
 Terminal 3:
 
@@ -59,7 +90,7 @@ npm run dev
 ```
 
 Open http://127.0.0.1:5173. API health is http://127.0.0.1:3001/api/v1/health.
-Keep this unauthenticated version local. You can alternatively use an existing
+Keep this version local until deployment is configured. You can alternatively use an existing
 local PostgreSQL database by setting DATABASE_URL in server/.env.
 
 | Command | Purpose |
@@ -70,8 +101,8 @@ local PostgreSQL database by setting DATABASE_URL in server/.env.
 | npm run db:seed | Add an explicitly labeled development example |
 | npm run dev:server | Express with watch mode |
 | npm run dev | Vite on port 5173 |
-| npm test | 46 client/server fixture checks; database tests skipped here |
-| npm run test:db | Six real PostgreSQL checks in a fresh disposable database |
+| npm test | 57 client/server checks; live-database tests run separately |
+| npm run test:db | Ten real PostgreSQL checks in a fresh disposable database |
 | npm run lint | Client, server and shared lint |
 | npm run build | Production frontend build |
 | npm run preview | Built frontend on port 4173; API/database still required |
@@ -82,7 +113,7 @@ development database. npm test does not prove database persistence by itself.
 
 ## Manual check
 
-1. Start an interview; type an answer and click Save progress.
+1. Sign in with Google or another enabled method. Start an interview; type an answer and click Save progress.
 2. Refresh, open History, and choose Resume interview. Revisit the saved answer.
 3. Restart Express; reopen History and verify the same text and question order.
 4. Complete all answers, then reopen the completed review from History.

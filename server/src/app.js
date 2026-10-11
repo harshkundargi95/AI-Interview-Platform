@@ -1,5 +1,6 @@
 import express from 'express'
 import { ApiError, errorHandler } from './middleware/errors.js'
+import { createAuthentication } from './middleware/authentication.js'
 import { createInterviewService } from './services/interviews.js'
 import { interviewRoutes } from './routes/interviews.js'
 
@@ -8,10 +9,13 @@ export const localOrigins = [
   'http://127.0.0.1:4173', 'http://localhost:4173',
 ]
 
-export function createApp({ service = process.env.NODE_ENV === 'test' ? createInterviewService() : null, origins = localOrigins, environment = process.env.NODE_ENV } = {}) {
-  if (environment === 'production') throw new Error('This unauthenticated Phase 4 API is local-only.')
-  if (!service) throw new Error('A PostgreSQL interview service is required.')
-  if (!origins.length || origins.some((origin) => !localOrigins.includes(origin))) throw new Error('CORS origins must be an explicit subset of the supported local frontend origins.')
+export function createApp({ db, service, authOptions = {}, origins = localOrigins, environment = process.env.NODE_ENV } = {}) {
+  // Deployment remains Phase 10. No runtime development identity exists in Phase 5.
+  if (environment === 'production') throw new Error('Deployment configuration is pending; this API remains local-only.')
+  if (!origins.length || origins.some(origin => !localOrigins.includes(origin))) throw new Error('CORS origins must be an explicit subset of the supported local frontend origins.')
+  // Earlier regression fixtures are available only inside a Vitest process.
+  const fixture = !db && process.env.NODE_ENV === 'test' && process.env.VITEST ? (service || createInterviewService()) : null
+  if (!db && !fixture) throw new Error('A PostgreSQL database and Clerk authentication are required.')
   const app = express()
   app.disable('x-powered-by')
   app.use((req, res, next) => {
@@ -23,18 +27,26 @@ export function createApp({ service = process.env.NODE_ENV === 'test' ? createIn
       res.set('Access-Control-Allow-Origin', origin)
       res.vary('Origin')
       res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-      res.set('Access-Control-Allow-Headers', 'Content-Type')
+      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     }
     if (req.method === 'OPTIONS') return res.sendStatus(204)
+    next()
+  })
+  app.get('/api/v1/health', async (req, res) => {
+    if (db) await db.$queryRaw`SELECT 1`
+    else await fixture.health?.()
+    res.json({ data: { status: 'ok', storage: db ? 'postgresql' : fixture.storage || 'temporary-memory', authentication: db ? 'clerk' : 'test-fixture' } })
+  })
+  if (db) app.use('/api/v1/interviews', ...createAuthentication(db, {
+    ...authOptions, authorizedParties: origins,
+  }))
+  app.use((req, res, next) => {
     if (['POST', 'PUT'].includes(req.method) && !req.is('application/json')) return next(new ApiError(415, 'JSON_REQUIRED', 'Send application/json.'))
     next()
   })
   app.use(express.json({ limit: '256kb' }))
-  app.get('/api/v1/health', async (req, res) => { await service.health?.(); res.json({ data: { status: 'ok', storage: service.storage || 'temporary-memory', authentication: 'none-local-only' } }) })
-  app.use('/api/v1/interviews', interviewRoutes(service))
+  app.use('/api/v1/interviews', interviewRoutes(fixture))
   app.use((req, res, next) => next(new ApiError(404, 'ROUTE_NOT_FOUND', 'API route not found.')))
   app.use(errorHandler)
   return app
 }
-
-

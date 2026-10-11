@@ -2,8 +2,8 @@
 
 A phase-by-phase guide to understanding the project and explaining its code.
 
-**Status: Phases 0–4 completed, including 3.1. Phases 5–11 are planned.**
-Read [Phase 4](#phase-4--postgresql-persistence) for current storage behavior. Earlier memory/expiry descriptions are historical.
+**Status: Phases 0–5 completed, including 3.1. Phase 5 automated checks passed; live operation confirmed by the user on 2026-10-11. Phases 6–11 are planned.**
+Read [Phase 5](#phase-5--authentication-authorization-and-google-sign-in) for current account behavior and [Phase 4](#phase-4--postgresql-persistence) for storage. Earlier memory/expiry descriptions are historical.
 The detailed chapters below preserve the Phase 3 milestone. For the current expanded implementation, read [Phase 3.1 step by step](#phase-31--scope-configuration-and-fixed-bank-planning) first. Frontend-only, positional-ID and five-question descriptions below are historical. The current roadmap and brief supersede the old future-phase summaries, particularly dynamic question generation and follow-ups in Phase 6.
 
 The [Phase 1–3 audit](PROGRESS.md#historical-phase-13-audit) verifies the completed scope against the
@@ -1005,3 +1005,153 @@ there is no autosave or cross-tab merge, and browser close warnings remain
 browser-controlled. Authentication is Phase 5; real AI reports are Phase 6.
 Dependency/tooling advisories and the PostgreSQL driver warning are recorded in
 PROGRESS.md. Do not publish this local development identity.
+
+## Phase 5 — Authentication, authorization and Google sign-in
+
+**Phase 5 complete: automated checks passed and the user confirmed live operation
+on 2026-10-11.** Live acceptance is user-reported, not independently observed by
+the assistant. This chapter explains the implementation and verification evidence.
+
+### 1. Separate authentication from authorization
+
+Authentication answers “Who is making this request?” Clerk handles sign-in and
+issues a short-lived session token. Authorization answers “May this user access
+this particular interview?” Our Express service scopes each operation to the
+verified user's database ID. Hiding a page in React alone cannot protect an API.
+
+The user requested Google sign-in as part of Phase 5. We use Clerk's prebuilt
+SignIn and SignUp screens, which display Google when it is enabled in the Clerk
+dashboard's SSO connections. Clerk handles OAuth callbacks and session creation.
+Google authenticates the person; our API receives a Clerk session token, not a
+Google password or a browser-supplied user ID.
+
+### 2. Configure the provider without exposing secrets
+
+client/.env contains VITE_CLERK_PUBLISHABLE_KEY. This key identifies the Clerk app
+and is intended to be public in browser code. server/.env contains
+CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY for that same app. Only the server may
+receive the secret key. Environment examples contain placeholders; actual .env
+files remain ignored by Git.
+
+Clerk development apps support shared Google OAuth credentials. Enable Google for
+sign-up and sign-in in the dashboard. Production OAuth credentials, HTTPS domains
+and deployment are later configuration work. Use a regular browser for the Google
+flow; embedded browsers may be blocked by Google's OAuth policy.
+
+### 3. Add account state to React
+
+client/src/auth/AuthProvider.jsx wraps the router with ClerkProvider when configured.
+Its ClerkSession component reads the current signed-in identity and creates an API
+client for that account. auth/context.js exposes this state to the app.
+
+App.jsx adds /sign-in/* and /sign-up/* routes. Account.jsx hosts the provider's
+prebuilt UI. The wildcard permits Clerk's multi-step sign-in screens. Redirects
+after authentication go to the fixed local /setup route.
+
+RequireAccount protects Setup, Room, Feedback and History. Before Clerk finishes
+loading it shows a session check. Signed-out visitors see a sign-in prompt. Missing
+configuration shows setup guidance rather than exposing interviews or simulating
+a signed-in user. The overview remains public.
+
+AccountControls adds sign-in/create-account buttons and a signed-in sign-out control.
+Signing out with unsaved answers requires confirmation. Saved data remains in
+PostgreSQL. The existing theme toggle and responsive header remain available.
+
+### 4. Attach a session token to each API request
+
+createInterviewApi(getToken) obtains a fresh Clerk session token before issuing a
+request. It adds Authorization: Bearer <session-token> and continues using
+credentials: omit. Application code does not persist tokens in localStorage.
+
+The factory is bound to the current account. It checks that Clerk still identifies
+the same user both before and after obtaining a token. A request started by account A
+cannot obtain account B's token after a switch. InterviewProvider is keyed by user ID:
+sign-out or account switching remounts it, clearing drafts, errors, creation keys and
+previously loaded private data. An unmount generation check ignores late responses.
+
+A missing token fails before making an API call. An HTTP 401 shows an actionable
+session-expired message. If the app still has the same signed-in identity, a failed
+save keeps its draft. Signing out or switching identity intentionally clears that
+private in-memory draft; copy unsaved edits first. This prevents the next account
+from seeing the previous person's answers.
+
+### 5. Verify authentication in Express
+
+server/src/middleware/authentication.js uses the official clerkMiddleware and
+getAuth helpers. Requests to /api/v1/interviews and all descendants require a
+Bearer header. Cookies alone never authorize these API operations.
+
+The SDK verifies the token signature and validity. The middleware accepts only
+session tokens with an authenticated user/session and requires azp (the authorized
+frontend origin) to match the explicit origin list. Missing, malformed, expired,
+forged or wrong-origin tokens receive a JSON 401 before accessing interview data.
+
+CORS permits Authorization in preflight requests. It still rejects unknown origins.
+CORS and route protection are different controls: even a command-line client must
+provide a valid token. Health remains public but only reports service state.
+
+Backend authentication requires configured keys. The old Map fixture is available
+only inside the test runner; normal application startup has no mock identity.
+Production deployment remains disabled until the later deployment phase.
+
+### 6. Map Clerk users into relational users
+
+The Prisma User model stores an internal ID, unique optional clerkUserId, legacy
+flag and creation timestamp. We do not copy profile emails or names because current
+interview operations do not need them.
+
+After verifying a token, the middleware upserts the User using the verified Clerk
+subject. The returned internal ID is passed into createPersistentInterviewService.
+A User-to-Interview foreign key guarantees that the parent owner exists.
+
+The migration preserves earlier data: it creates a legacy User for each existing
+Phase 4 owner, then adds the foreign key. Legacy rows have no Clerk identity and
+cannot be claimed through sign-in. This prevents the first real account from
+receiving all previously shared local records.
+
+### 7. Enforce ownership everywhere
+
+A request-scoped service carries exactly one database owner ID. Create assigns that
+owner. History filters by it. Read, save, complete and delete require both the
+interview ID and owner ID. Reports are returned only inside an authorized interview
+snapshot; no unrestricted report endpoint exists.
+
+Wrong-owner access returns the same 404 as a missing interview. Browser-supplied
+owner fields fail strict request validation and identity headers are ignored.
+Duplicate creation keys remain unique per owner, so two accounts can independently
+use the same request ID without sharing a record.
+
+Existing transaction, revision, immutable completion and cascading deletion rules
+remain. Authentication does not replace these data-integrity checks.
+
+### 8. Verify security with useful tests
+
+Server authentication tests generate temporary RSA signing keys in memory. The
+real Clerk SDK verifies signed fixture JWTs using their public key. Tests reject
+missing tokens, cookie-only requests, expired tokens, modified signatures and
+unapproved origins. These are cryptographic integration tests, not live Clerk logins.
+
+The real PostgreSQL suite runs two independently authenticated fixture users through
+HTTP routes. It checks private history and read/save/complete/delete/report access,
+spoofed owner fields, preserved legacy records and expired-session writes. The
+existing restart and persistence tests now provide verified fixture tokens too.
+
+Frontend tests check protected routes, loading states, account-switch data clearing,
+token headers, missing tokens, retained drafts after authentication errors and
+sign-out confirmation. Existing interview journeys also remain covered.
+
+The user confirmed successful operation after receiving the live Google sign-in,
+save/resume and second-account checklist on 2026-10-11. This is user-reported
+acceptance; fixture tests remain separate evidence. See PROGRESS.md.
+
+### Learning checkpoint
+
+Trace one saved answer: Clerk sign-in → getToken → Authorization header → verified
+Clerk subject → database User → owner-scoped transaction. Explain why the server
+does not trust an ownerId in JSON, even when the React page is protected.
+
+Practice: use two accounts in separate browser profiles. Create a record in A,
+confirm B cannot see it, and explain why knowing its UUID does not grant access.
+
+Suggested commit when ready: feat: add Clerk authentication, Google sign-in and
+private interview ownership. No automatic commit or push is part of Phase 5.

@@ -1,17 +1,19 @@
 # Deployment (pending)
 
-No application has been published and no cloud resources have been created.
+No application has been deployed. Phase 4 source was pushed to GitHub at the user’s
+request; that is not a deployment. The user is configuring a Clerk application.
 
-## Current local setup — Phase 4
+## Current local setup — Phase 5
 
 See ../README.md for commands. server/.env requires DATABASE_URL and optionally PORT
-and CORS_ORIGINS. client/.env.example retains the public VITE_API_URL; never place
+and CORS_ORIGINS. Clerk also requires CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY
+on the server, plus VITE_CLERK_PUBLISHABLE_KEY on the client. client/.env.example retains the public VITE_API_URL; never place
 database credentials in VITE_* variables.
 
 npm run db:local starts real PostgreSQL on loopback port 55432 and preserves files
 under server/.data/postgres. The helper and its known local password are development
 conveniences only. The application refuses production and non-local database hosts
-while the provisional development owner is enabled. Do not tunnel or publish it.
+until deployment configuration is verified. No provisional owner is enabled. Do not tunnel or publish it.
 
 After npm ci, run npm run db:generate. Apply committed migrations with npm run
 db:migrate. Optional npm run db:seed creates a labeled development example.
@@ -33,13 +35,12 @@ managed PostgreSQL on Render instead of the local helper:
 | npm run db:local starts PostgreSQL on your PC | A hosted PostgreSQL service runs the database |
 | Data lives in server/.data/postgres | Data lives in the hosted database |
 | server/.env supplies the local connection | Backend hosting settings supply the production DATABASE_URL securely |
-| Provisional local development identity | Verified authentication and ownership must be in place |
+| Clerk development application and verified ownership | Separate production Clerk application/domain/OAuth configuration |
 
 Prisma stays in the project. The models, queries and committed migrations carry
 over; switching to hosted PostgreSQL does not require a database rewrite.
 Deployment still requires configuring the hosted connection and security settings,
-applying migrations, and replacing the current local-only restrictions after
-authentication is implemented. It is not ready for publication merely by changing
+applying migrations, and replacing the current local-only restrictions during the deployment phase. It is not ready for publication merely by changing
 DATABASE_URL.
 
 Schema migrations create or update tables; they do not copy your local interview
@@ -69,8 +70,17 @@ does not automatically revert database schema or recover deleted interviews.
 - Verify Clerk authentication, ownership, HTTPS, CORS, provider configuration,
   persistence, migrations, backups, monitoring and rollback.
 - Resolve or explicitly assess dependency advisories recorded in PROGRESS.md.
-- Replace development identity/guards only after authentication is implemented.
+- Configure production guards/origins after reviewing the authenticated deployment.
 
 Recheck official hosting constraints and supported versions during Phase 10.
 Prepare the release before asking for publication authorization. Report actual
 deployed URLs only after deployment and live verification; deployment remains pending.
+
+## Google OAuth and release readiness
+
+Enable Google for sign-up/sign-in in Clerk SSO connections. Development can use
+shared OAuth credentials; production requires custom Google OAuth credentials and
+authorized redirects configured in the provider dashboards. Never expose secrets
+in VITE_* or commit .env files. Use a regular browser for live Google checks.
+A public health response does not prove OAuth works. Phase 5 live verification is
+tracked separately in PROGRESS.md; no publication is authorized by this phase.

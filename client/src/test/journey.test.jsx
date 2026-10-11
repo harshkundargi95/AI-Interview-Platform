@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { beforeEach, expect, it, vi } from 'vitest'
 import App from '../App.jsx'
+import { AuthContext } from '../auth/context.js'
 import { interviewApi } from '../interview/api.js'
 import { selectQuestions } from '../../../server/src/data/questions.js'
 
@@ -22,7 +23,7 @@ beforeEach(() => {
 })
 
 function renderApp(path = '/setup') {
-  const router = createMemoryRouter([{ path: '*', element: <App /> }], { initialEntries: [path] })
+  const router = createMemoryRouter([{ path: '*', element: <AuthContext.Provider value={{ configured: true, isLoaded: true, isSignedIn: true, userId: 'user_test', api: interviewApi, signOut: vi.fn() }}><App /></AuthContext.Provider> }], { initialEntries: [path] })
   render(<RouterProvider router={router} />)
   return { router, user: userEvent.setup() }
 }

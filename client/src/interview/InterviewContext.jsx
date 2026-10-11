@@ -1,15 +1,16 @@
-import { useReducer, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { interviewReducer } from './session.js'
 import { InterviewContext } from './useInterview.js'
-import { interviewApi } from './api.js'
 
-export function InterviewProvider({ children }) {
+export function InterviewProvider({ children, api }) {
   const [session, dispatch] = useReducer(interviewReducer, null)
   const [busy, setBusy] = useState(false)
   const [requestError, setRequestError] = useState('')
   const lock = useRef(false)
   const creation = useRef(null)
   const generation = useRef(0)
+
+  useEffect(() => () => { generation.current += 1 }, [])
 
   async function runRequest(operation, apply) {
     if (lock.current) return false
@@ -35,24 +36,24 @@ export function InterviewProvider({ children }) {
     const signature = JSON.stringify(preferences)
     if (!creation.current || creation.current.signature !== signature) creation.current = { signature, requestId: crypto.randomUUID() }
     return runRequest(
-      () => interviewApi.start(creation.current.requestId, preferences),
+      () => api.start(creation.current.requestId, preferences),
       (result) => { dispatch({ type: 'start', session: result }); creation.current = null },
     )
   }
 
   function completeInterview() {
     return runRequest(
-      () => interviewApi.complete(session.id, session.answers, session.revision),
+      () => api.complete(session.id, session.answers, session.revision),
       (result) => dispatch({ type: 'complete', session: result }),
     )
   }
 
   function saveInterview() {
-    return runRequest(() => interviewApi.save(session.id, session.answers, session.revision), result => dispatch({ type: 'saved', session: result }))
+    return runRequest(() => api.save(session.id, session.answers, session.revision), result => dispatch({ type: 'saved', session: result }))
   }
 
   function resumeInterview(id) {
-    return runRequest(() => interviewApi.read(id), result => dispatch({ type: 'start', session: result }))
+    return runRequest(() => api.read(id), result => dispatch({ type: 'start', session: result }))
   }
 
   function discardInterview() {

@@ -2,7 +2,7 @@
 
 These sections describe successive historical milestones. Earlier “next phase”
 prompts and limitations apply to that checkpoint; the current application is at
-Phase 4. Use PROJECT_WALKTHROUGH.md for the current code explanation and
+Phase 5 completed (live operation confirmed by the user on 2026-10-11). Use PROJECT_WALKTHROUGH.md for the current code explanation and
 REQUIREMENTS_CHECKLIST.md for completion tracking. Update these learning notes
 after each completed phase.
 
@@ -150,3 +150,16 @@ writes together. Revisions detect stale tabs; idempotency makes exact retries sa
 Practice: save one answer, restart Express, and resume from History. Trace the save
 request and explain why unsaved edits still need a warning. See the Phase 4 chapter
 in PROJECT_WALKTHROUGH.md for the full file-by-file explanation. Next: Phase 5.
+
+## Phase 5 checkpoint
+
+Authentication verifies identity; authorization checks ownership of a resource.
+Clerk handles sign-in, including Google OAuth. Express verifies a session token
+and maps its subject to a database User. Foreign keys and owner-scoped queries
+serve different purposes: relational integrity and access control.
+
+Practice with two accounts in separate browser profiles: save in A, verify B has
+independent history, then explain why supplying A’s user ID cannot grant access.
+Learn why VITE_* keys are public, why the Clerk secret stays server-side, and why
+private React state must be cleared on account changes. Live operation was confirmed by the user on 2026-10-11; that report is separate
+from the signed-fixture automated tests. See PROGRESS.md.

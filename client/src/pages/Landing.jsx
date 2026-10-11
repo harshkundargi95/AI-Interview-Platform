@@ -9,7 +9,7 @@ export default function Landing() {
           <h1>Make room for<br /><span>your next opportunity.</span></h1>
           <p className="intro">A thoughtful space to prepare for software developer internships and junior roles across four tracks. One question, one reflection, one step forward.</p>
           <div className="actions"><ButtonLink to="/setup">Start practicing <span aria-hidden="true">↗</span></ButtonLink><ButtonLink to="/feedback" variant="secondary">See sample feedback</ButtonLink></div>
-          <p className="small-note">3–10 fixed-bank questions. No account needed. Keep this tab open to retain your answers.</p>
+          <p className="small-note">3–10 fixed-bank questions. Sign in to save progress and return to your interviews.</p>
         </div>
         <Card className="hero-card" aria-labelledby="practice-heading">
           <div className="card-topline"><span className="eyebrow">The practice loop</span><span className="badge">Coming together</span></div>
@@ -25,7 +25,7 @@ export default function Landing() {
       <div className="three-column">
         <Card><span className="feature-index">01 / PREPARE</span><h3>A focused starting point</h3><p>Choose a role track, experience level, subjects and question count before entering the room.</p><ButtonLink to="/setup" variant="text">View setup →</ButtonLink></Card>
         <Card><span className="feature-index">02 / REFLECT</span><h3>Feedback with context</h3><p>See how strengths and suggestions can connect to evidence in an answer.</p><ButtonLink to="/feedback" variant="text">View sample report →</ButtonLink></Card>
-        <Card><span className="feature-index">03 / RETURN</span><h3>A place for your progress</h3><p>Explore the history layout with a fictional interview. Your real history will come later.</p><ButtonLink to="/history" variant="text">View history →</ButtonLink></Card>
+        <Card><span className="feature-index">03 / RETURN</span><h3>A place for your progress</h3><p>Resume unfinished interviews and revisit saved answers in your own account.</p><ButtonLink to="/history" variant="text">View history →</ButtonLink></Card>
       </div>
     </>
   )

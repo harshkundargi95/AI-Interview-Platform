@@ -1,17 +1,20 @@
-# Express backend — Phase 4
+# Express backend — Phase 5
 
-See ../README.md for the three-terminal local setup. PostgreSQL must be running,
-server/.env must provide DATABASE_URL, and migrations must be applied.
-Run npm run db:generate after installing dependencies.
+See ../README.md for local PostgreSQL and Clerk setup. Required server/.env values:
+DATABASE_URL, CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY. Optional CLERK_JWT_KEY is
+the Clerk public verification key, never a private key. Default port is 3001.
 
-Routes → async controllers → Zod validation → persistent service → Prisma/PostgreSQL.
-The normal entry point never falls back to the earlier Map service.
-API listens at 127.0.0.1:3001 and refuses production. A hardcoded development
-identity is used locally; this is not authentication.
+Run npm run db:generate and npm run db:migrate from the root after installing.
+The second migration preserves Phase 4 records as legacy users and adds ownership
+relations. db:seed is optional and creates a legacy record, not a signed-in user's
+interview. Never reset the database to enable accounts.
 
-npm run test:db (from root) creates and migrates a unique temporary local database,
-runs real persistence checks, then drops only that test database. It requires
-CREATE DATABASE privilege. npm test runs the ordinary fixtures without PostgreSQL.
+Bearer token → official Clerk verification → verified User mapping → owner-scoped
+service → Prisma/PostgreSQL. All interview routes require authentication; health
+and CORS preflight are public. Cookies alone and client identity fields cannot grant
+access. Normal startup has no provisional identity and fails if keys are missing.
 
-Fixed bank and shared configuration are preserved. See ../docs/API.md and the
-Phase 4 chapter in ../docs/PROJECT_WALKTHROUGH.md.
+npm test runs fixture/SDK verification tests; npm run test:db additionally creates
+a disposable real database for persistence and authenticated ownership tests.
+Both use synthetic signed test tokens, not live Clerk accounts.
+Production and remote database connections remain disabled until deployment work.

@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { request } from './api.js'
+import { request, createInterviewApi } from './api.js'
 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
 it('sends JSON to the real configured API path without credentials', async () => {
@@ -21,4 +21,23 @@ it('aborts a stalled request after ten seconds', async () => {
   const result = expect(request('/health')).rejects.toMatchObject({ code: 'TIMEOUT' })
   await vi.advanceTimersByTimeAsync(10000)
   await result
+})
+
+it('adds a fresh bearer token to account requests and never includes cookies', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { items: [] } }) })
+  vi.stubGlobal('fetch', fetchMock)
+  const token = vi.fn().mockResolvedValue('ephemeral-session-token')
+  const api = createInterviewApi(token)
+  await api.history()
+  expect(token).toHaveBeenCalledOnce()
+  expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer ephemeral-session-token')
+  expect(fetchMock.mock.calls[0][1].credentials).toBe('omit')
+})
+it('fails closed without a token and treats an API 401 as reauthentication', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({ status: 401, ok: false, json: async () => ({ error: { message: 'Expired' } }) })
+  vi.stubGlobal('fetch', fetchMock)
+  await expect(createInterviewApi(async () => null).history()).rejects.toMatchObject({ code: 'AUTH_REQUIRED' })
+  expect(fetchMock).not.toHaveBeenCalled()
+  await expect(createInterviewApi(async () => 'expired-token').history()).rejects.toMatchObject({ code: 'AUTH_REQUIRED' })
+  expect(fetchMock).toHaveBeenCalledOnce()
 })
