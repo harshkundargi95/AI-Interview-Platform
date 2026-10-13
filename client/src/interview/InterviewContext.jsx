@@ -52,6 +52,18 @@ export function InterviewProvider({ children, api }) {
     return runRequest(() => api.save(session.id, session.answers, session.revision), result => dispatch({ type: 'saved', session: result }))
   }
 
+  function requestFollowup(questionId) {
+    return runRequest(async () => {
+      const saved = await api.save(session.id, session.answers, session.revision)
+      // Update saved revision even if AI fails afterward; preserve all local edits.
+      dispatch({ type: 'saved', session: saved })
+      return api.followup(session.id, questionId, saved.revision)
+    }, result => dispatch({ type: 'expanded', session: result }))
+  }
+  function generateReport() {
+    return runRequest(() => api.report(session.id), result => dispatch({ type: 'report', session: result }))
+  }
+
   function resumeInterview(id) {
     return runRequest(() => api.read(id), result => dispatch({ type: 'start', session: result }))
   }
@@ -62,5 +74,5 @@ export function InterviewProvider({ children, api }) {
     setRequestError('')
   }
 
-  return <InterviewContext.Provider value={{ session, dispatch, startInterview, completeInterview, discardInterview, saveInterview, resumeInterview, busy, requestError }}>{children}</InterviewContext.Provider>
+  return <InterviewContext.Provider value={{ session, dispatch, startInterview, completeInterview, discardInterview, saveInterview, resumeInterview, busy, requestError, requestFollowup, generateReport }}>{children}</InterviewContext.Provider>
 }

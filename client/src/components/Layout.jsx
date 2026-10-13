@@ -36,7 +36,7 @@ export default function Layout() {
           {navigation.map(([to, label]) => <NavLink key={to} to={to} end={to === '/'}>{label}</NavLink>)}
         </nav>
       </header>
-      <div className="preview-banner"><span className="status-dot" aria-hidden="true" /><p><strong>Practice locally.</strong> Save progress to keep answers in local PostgreSQL. History shows saved interviews; feedback examples are fictional. Sign in to access your own interviews. AI feedback is not connected yet.</p></div>
+      <div className="preview-banner"><span className="status-dot" aria-hidden="true" /><p><strong>Practice locally.</strong> Save progress to keep answers in local PostgreSQL. Sign in to access your own interviews. Setup shows the active AI mode; mock reports are demonstrations and live scores are coaching guidance.</p></div>
       <main id="main" ref={mainRef} tabIndex={-1}><div key={pathname} className="page-content"><Outlet /></div></main>
       <footer><span>Built one phase at a time.</span><span>Learn → Practice → Reflect</span></footer>
     </div>

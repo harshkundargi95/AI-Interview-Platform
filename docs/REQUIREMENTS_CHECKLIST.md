@@ -164,63 +164,72 @@ Acceptance:
 Implement a provider interface with explicit mock and live modes.
 
 Use AI to:
-- [ ] Generate an initial question plan from interview configuration.
-- [ ] Ask relevant, bounded follow-ups.
-- [ ] Analyze answers.
-- [ ] Produce a final report with subject-level feedback.
+- [x] Generate an initial question plan from interview configuration.
+- [x] Ask relevant, bounded follow-ups.
+- [x] Analyze answers.
+- [x] Produce a final report with subject-level feedback.
 
 Save each exact question before showing it. Keep server-side session state authoritative.
 
 For adaptive interviews:
-- [ ] Set clear limits for base questions and follow-ups.
-- [ ] Show accurate progress.
-- [ ] Avoid duplicate questions.
-- [ ] Preserve recoverable state when requests fail.
+- [x] Set clear limits for base questions and follow-ups.
+- [x] Show accurate progress.
+- [x] Avoid duplicate questions.
+- [x] Preserve recoverable state when requests fail.
 
 Analyze technical answers using:
-- [ ] Correctness.
-- [ ] Relevance.
-- [ ] Reasoning and tradeoffs.
-- [ ] Clarity.
-- [ ] Depth appropriate to experience.
+- [x] Correctness.
+- [x] Relevance.
+- [x] Reasoning and tradeoffs.
+- [x] Clarity.
+- [x] Depth appropriate to experience.
 
 Analyze behavioral answers using:
-- [ ] Relevance.
-- [ ] Structure.
-- [ ] Specificity.
-- [ ] Reflection.
+- [x] Relevance.
+- [x] Structure.
+- [x] Specificity.
+- [x] Reflection.
 
 Feedback must include:
-- [ ] Strengths.
-- [ ] Missing or incorrect points.
-- [ ] Evidence from the answer.
-- [ ] Actionable improvements.
-- [ ] An example improved answer when useful.
+- [x] Strengths.
+- [x] Missing or incorrect points.
+- [x] Evidence from the answer.
+- [x] Actionable improvements.
+- [x] An example improved answer when useful.
 
 Accept valid alternative approaches. Do not assume a reference answer is the only correct solution.
 
 Implement:
-- [ ] Structured response validation.
-- [ ] Score range validation.
-- [ ] Model and rubric version tracking.
-- [ ] Timeouts and bounded retries.
-- [ ] Per-user quotas and output limits.
-- [ ] Duplicate-request protection.
-- [ ] Usage tracking without sensitive answer logging.
-- [ ] A visible fixed-bank fallback.
-- [ ] Safe handling of provider outages and malformed output.
+- [x] Structured response validation.
+- [x] Score range validation.
+- [x] Model and rubric version tracking.
+- [x] Timeouts and bounded retries.
+- [x] Per-user quotas and output limits.
+- [x] Duplicate-request protection.
+- [x] Usage tracking without sensitive answer logging.
+- [x] A visible fixed-bank fallback.
+- [x] Safe handling of provider outages and malformed output.
 
 Treat candidate content as untrusted data. Give the model no unrestricted tools or database credentials.
 
 Clearly label scores as coaching guidance.
 
 Acceptance:
-- [ ] Live question generation and analysis work when configured.
-- [ ] Mock mode remains clearly labeled.
-- [ ] Provider failures preserve user answers.
-- [ ] Question generation respects tracks and selected subjects.
-- [ ] A small evaluation dataset covers strong, weak, irrelevant, and instruction-manipulation answers across subjects.
-- [ ] Report qualitative limitations honestly.
+- [x] Live question generation and analysis work when configured.
+- [x] Mock mode remains clearly labeled.
+- [x] Provider failures preserve user answers.
+- [x] Question generation respects tracks and selected subjects.
+- [x] A small evaluation dataset covers strong, weak, irrelevant, and instruction-manipulation answers across subjects.
+- [x] Report qualitative limitations honestly.
+
+Phase 6 evidence (2026-10-13): provider/contracts/operations, persistent service,
+AI routes and UI implemented; 88 tests, lint and build passed. Real Flash-Lite
+plan/follow-up/report, database reread and cached retry passed with a temporary
+synthetic user. Four live evaluation calls covered 16 probes successfully. Provider
+schema compatibility and model availability fixes are explained in PROGRESS.md.
+The user subsequently confirmed the browser app and Gemini reviews work on
+2026-10-13; no assistant-observed OAuth check. UI tests mock API responses. Scores remain coaching
+only and the small evaluation is not an accuracy benchmark.
 
 ## Phase 7 — JD and resume personalization
 

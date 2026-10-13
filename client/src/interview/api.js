@@ -4,9 +4,9 @@ export class RequestError extends Error {
   constructor(message, code) { super(message); this.code = code }
 }
 
-export async function request(path, { method = 'GET', body, token } = {}) {
+export async function request(path, { method = 'GET', body, token, timeout = 10000 } = {}) {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 10000)
+  const timer = setTimeout(() => controller.abort(), timeout)
   try {
     const response = await fetch(`${API_URL}${path}`, {
       method, signal: controller.signal,
@@ -37,11 +37,14 @@ export function createInterviewApi(getToken) {
     return request(path, { ...options, token })
   }
   return {
+  config: () => authorizedRequest('/ai-config'),
+  followup: (id, questionId, revision) => authorizedRequest(`/interviews/${id}/followups`, { method: 'POST', timeout: 60000, body: { questionId, revision } }),
+  report: id => authorizedRequest(`/interviews/${id}/report`, { method: 'POST', timeout: 60000, body: {} }),
   history: (skip = 0) => authorizedRequest('/interviews?skip=' + skip),
   read: id => authorizedRequest('/interviews/' + id),
   remove: id => authorizedRequest('/interviews/' + id, { method: 'DELETE' }),
   save: (id, answers, revision) => authorizedRequest('/interviews/' + id + '/answers', { method: 'PUT', body: { revision, answers: Object.entries(answers).filter(([, text]) => text.trim()).map(([questionId, text]) => ({ questionId, text })) } }),
-  start: (requestId, preferences) => authorizedRequest('/interviews', { method: 'POST', body: { requestId, preferences } }),
+  start: (requestId, preferences) => authorizedRequest('/interviews', { method: 'POST', timeout: 60000, body: { requestId, preferences } }),
   complete: (id, answers, revision) => authorizedRequest(`/interviews/${id}/complete`, {
     method: 'POST',
     body: { revision, answers: Object.entries(answers).map(([questionId, text]) => ({ questionId, text })) },

@@ -2,6 +2,144 @@
 
 ## Current checkpoint
 
+**Phase 6 complete with live backend verification — 2026-10-13.**
+Phase 5 was committed locally as **ceed058** at the user's request. The commit
+contained 48 files; staged content was checked against local Clerk key values and
+excluded paths. No matches found. Phase 5 was subsequently pushed to origin/main
+without overwriting remote work; remote commit ceed058 was verified. Phase 6 is included in the user-requested local commit with this checkpoint;
+no Phase 6 push is requested. Phase 7 is deferred until the user returns.
+
+### User confirmation and commit checkpoint — 2026-10-13
+
+The user confirmed that the project runs correctly in the browser and returns
+Gemini reviews. This is user-reported browser evidence, in addition to the live
+backend and automated checks below; no additional assistant browser inspection
+is claimed. Phase 6 is complete. The user requested a local Phase 6 commit and
+plans to start Phase 7 tomorrow. No reminder, push or Phase 7 work was requested.
+
+### Live fix and acceptance evidence — 2026-10-13
+
+This checkpoint supersedes the earlier provider-blocked record below.
+- 3.8 and 3.7 Flash returned overload errors; 2.5 Flash rejected new-user access.
+  Switched local configuration to gemini-3.1-flash-lite, verified with real calls.
+- A separate HTTP 400 report request was resolved by simplifying the provider JSON
+  grammar: omit string length and maximum-array constraints and schema declaration;
+  retain types, enums, required fields, numeric bounds and minimum array lengths.
+  Full strict Zod bounds, exact dimensions, coverage and evidence checks still run
+  before any output is accepted. No validation was disabled on the server.
+- Set minimal thinking for this specific Flash-Lite model and clarified exact rubric
+  names/counts and nonempty notes. This resolved malformed/empty report sections.
+- Real Gemini + local PostgreSQL synthetic-user journey passed: three DBMS questions,
+  saved answers, relevant follow-up, completion, validated live report, exact reread
+  through a new service instance, cached report retry, and cascading deletion.
+  The synthetic user was removed. No user's private answers were used.
+- Live evaluation passed all 16 probes in four calls. Mean scores for strong/weak/
+  irrelevant/manipulation: DSA 4.8/1.8/0/0; DBMS 5/1.4/0/0; CN 5/2.2/0/0;
+  behavioral 5/1.25/0/0. These small synthetic probes are not an accuracy benchmark.
+- Reviewed live question/follow-up/report content: selected DBMS scope was respected;
+  the report flagged deliberately repeated generic answers and identified missing
+  normalization/key concepts. Judgments may still be wrong; no hiring prediction.
+- Final automated checks: 22 client + 47 server + 19 database = 88 passed; lint and
+  build passed. New adapter regression covers compact grammar and strict local bounds.
+  Evaluation failures now log safe status/type/path metadata, never raw answer text.
+- Live verification was programmatic at provider/service/database layers. No new
+  browser/OAuth journey was performed. Existing UI tests use mocked API responses.
+- Reviewed all nine docs, READMEs and env examples; updated affected current status,
+  setup, model example and walkthrough. No commit, push or Phase 7 implementation.
+
+### Phase 6 continuation verification — 2026-10-12
+
+- Confirmed the existing Phase 6 implementation against the master checklist.
+- Fresh checks: 22 client and 46 server tests passed; lint, production build and
+  the offline 16-case evaluation dataset check passed.
+- The first fresh database run had 3 failures caused by exhausted serialization
+  retries during concurrent suite activity. Added bounded exponential delay with
+  jitter between the existing three transaction attempts (50–99ms, then 100–149ms).
+  Provider requests remain outside these database retries. All 19 database tests
+  then passed, including concurrent writes and native adapter conflict recovery.
+- Gemini credentials remain absent. No live provider or browser verification was
+  performed; the live acceptance gate remains open. No Phase 7 work was started.
+
+### Phase 6 implementation and evidence
+
+- Official @google/genai 2.28.0, with separate mock/live provider implementations.
+  Consulted Google's structured-output guide and JS SDK configuration reference.
+- Dynamic live plan implementation uses role/experience/difficulty/language/
+  technologies and server-selected subject/category slots. Exact count/coverage
+  and normalized text uniqueness are validated. UUIDs and question snapshots are
+  persisted before presentation. Provider failure/quota uses a visible fixed bank.
+- 3–10 base questions; up to two optional follow-ups, one per answered base question.
+  Save occurs before requesting a follow-up. Progress includes appended questions.
+- Completed answers are saved before an explicit report request. Persisted reports
+  contain per-answer rubric scores, exact evidence, strengths/gaps/improvements,
+  optional examples, derived subject feedback and model/rubric metadata.
+- Strict schemas enforce bounds, expected question IDs and category dimensions;
+  evidence must occur in the saved answer. Candidate content is treated as untrusted
+  data; no tools, database credentials or raw answer logging are given to the model.
+- Durable AiOperation keys/cache, input hashes, one request/user and three globally,
+  30 operations/user/UTC day, 45-second deadline, 4k/12k output-token caps. Only an
+  explicit 429 may retry once; SDK retries are disabled. Uncertain failures and
+  crashed operations are not automatically replayed. Cached successes are reused.
+- Interview deletion erases cached generated content while retaining non-content
+  quota metadata; a late result cannot repopulate deleted content. Revision checks
+  prevent late follow-ups mutating completed interviews.
+- Additive third migration and Prisma generation applied to local development DB.
+  Existing interviews, owners and saved answers preserved; no reset.
+- 22 frontend tests passed, including expanded progress/report and follow-up failure.
+  46 server tests passed. 19 real PostgreSQL tests passed in a disposable database
+  with all three migrations. Combined **87 passing tests**; no live provider used.
+- Expanded tests exposed an adapter-level serialization conflict. Retry handling
+  now recognizes both Prisma P2034 and native adapter SQLSTATE 40001; regression
+  coverage and the full database suite passed after the fix.
+- Final npm test: 68 passed (22 client + 46 server); 19 database tests run
+  separately and passed. Lint and production build passed. Public local health
+  and ai-config responded 200 in mock mode.
+- Sixteen hand-authored evaluation probes cover strong/weak/irrelevant/manipulation
+  answers in DSA, DBMS, networks and behavioral interviews. Offline dataset check
+  passed. Live evaluation makes four report calls only when explicitly requested.
+  No semantic scoring-quality or real Gemini reliability claim is made yet.
+
+### Historical provider-blocked check — 2026-10-13 (resolved above)
+
+- User supplied the server-only Gemini key and authorized live testing. Model listing
+  succeeded without exposing the key. Set AI_MODE=live and GEMINI_MODEL=gemini-3.8-flash
+  in ignored server/.env. Model listing confirms generateContent support.
+- One live plan request timed out at 45 seconds. All four evaluation report calls
+  failed; a bounded diagnostic report request returned HTTP 503 UNAVAILABLE with
+  Google's high-demand message. No valid report or scoring metrics were produced.
+- Tried gemini-2.5-flash once: HTTP 404, provider says unavailable to new users and
+  directs use of gemini-3.8-flash. Restored 3.8. One final synthetic follow-up request
+  timed out at 45 seconds. No successful live generation is claimed.
+- Only synthetic preferences/evaluation answers were sent. No personal interview
+  records were used. These explicit checks were outside the app operation ledger;
+  timeouts do not establish whether provider usage was billed.
+- Live configuration is ready, but the provider must respond successfully before
+  completing the plan/follow-up/report persistence journey and four-subject evaluation.
+  No browser journey was verified. Phase 6 remains incomplete; Phase 7 stays unstarted.
+- Reviewed the nine consolidated docs, READMEs and env examples. Updated progress,
+  roadmap, checklist, walkthrough and README to distinguish configured from verified.
+  Existing API/architecture/learning/deployment contracts and env examples remain valid.
+  Previous 87 passing automated tests remain the latest application-code verification;
+  this continuation changed configuration and documentation only.
+
+### Documentation and learning
+
+Reviewed/updated the existing README, API, architecture, deployment, roadmap,
+checklist, walkthrough, learning notes, client/server READMEs and server env example.
+Client env needs no AI fields. Master prompt preserved; nine docs Markdown files.
+See the Phase 6 walkthrough for data flow, file responsibilities and exercises.
+Suggested future commit: `feat: add bounded AI interviews and persisted coaching reports`.
+
+Known limits: mock reports use fixed scores; live judgment may be wrong/bias-prone.
+Exact quote validation cannot prove sound reasoning. Duplicate checks catch normalized
+text, not all paraphrases. Model ID tracking uses the configured provider model;
+an upstream alias may change implementation. Unknown-charge calls are not retried;
+there is no provider billing reconciliation or automatic recovery of crashed jobs.
+The earlier four high tooling advisories and pg deprecation remain. Deployment,
+uploads/JD/resume, voice and autosave are not part of this phase.
+
+## Historical Phase 5 closeout
+
 **Phase 5 complete — 2026-10-11.**
 The user confirmed “its working properly” after the live verification instructions.
 Live acceptance is user-reported; the assistant did not interact with Google OAuth

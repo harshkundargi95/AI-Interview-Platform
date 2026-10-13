@@ -1,7 +1,7 @@
-# Local API — Phase 5
+# Local API — Phase 6
 
 Base URL: http://127.0.0.1:3001/api/v1. Clerk authentication is required for all
-/interviews routes. Send Authorization: Bearer <Clerk session token>. Health and
+/interviews routes. Send Authorization: Bearer <Clerk session token>. Health, /ai-config and
 preflight do not require sign-in. Cookies alone never authorize API calls.
 Ownership comes from the verified Clerk subject mapped to a database User; never
 send ownerId or userId in a request body/query. POST/PUT require JSON, max 256 KiB.
@@ -14,13 +14,14 @@ Success envelope: { "data": ... }. Error envelope: { "error": { "code", "message
 | POST /interviews | requestId UUID, preferences | 201 new; 200 matching retry |
 | GET /interviews | skip 0–100000, take 1–50; defaults 0/20 | { items, hasMore } newest first |
 | GET /interviews/:id | UUID | Exact saved snapshot |
-| PUT /interviews/:id/answers | revision, answers (0–10) | Replace the full draft snapshot atomically |
+| PUT /interviews/:id/answers | revision, answers (0–12) | Replace the full draft snapshot atomically |
 | POST /interviews/:id/complete | revision, every answer | Atomically persist completed snapshot |
 | DELETE /interviews/:id | UUID | 200 { id, deleted: true }; missing 404 |
 
 Snapshot fields: id, preferences, status (active/completed), revision, createdAt,
 updatedAt, completedAt, exact ordered questions, answers keyed by question ID,
-feedback (null until a report exists). There is no expiresAt.
+generation (source/mode/model/baseCount/maxFollowups/reason),
+feedback (null until a report exists; otherwise source/content/modelVersion/rubricVersion). There is no expiresAt.
 History items include preferences/status/timestamps/questionCount/savedAnswerCount,
 but omit answer text. Pagination uses offset and a limit; concurrent new records
 can shift pages, so Refresh history returns the latest list.
@@ -121,11 +122,42 @@ changing configuration under the same key returns 409.
 
 Question snapshots additionally contain subject, tracks, experienceLevels,
 difficulties, languages, technologies, chosen experience/difficulty, source
-(fixed-bank), and a visible applicability description. IDs are explicit editorial
-keys and no longer derived from array positions. Existing sessions keep their exact
+(fixed-bank, mock or gemini), and a visible applicability description. Bank IDs are editorial
+keys; AI question IDs are server UUIDs and no longer derived from array positions. Existing sessions keep their exact
 question text/order; no request silently reselects their questions. Pre-Phase-4 memory sessions were not migrated; new PostgreSQL records are durable.
 
-The answer array supports 0–10 entries for PUT. Completion requires exactly the
+The answer array supports 0–12 entries for PUT. Completion requires exactly the
 session's question set, not a hardcoded five. Request body limit is 256 KiB to
-accommodate ten maximum-length answers, including JSON escaping. Per-answer limit
+accommodate twelve maximum-length answers, including JSON escaping. Per-answer limit
 remains 3,000 JavaScript string units. History and DELETE paths were added in Phase 4.
+
+## Phase 6 endpoints
+
+| Method/path | Request | Result |
+| --- | --- | --- |
+| GET /ai-config | None, public | { mode: mock/live/disabled, maxFollowups } without keys |
+| POST /interviews/:id/followups | { questionId, revision } | Saved snapshot with one appended follow-up; repeats return existing snapshot |
+| POST /interviews/:id/report | {} | Completed snapshot with persisted mock/live report; repeated success uses stored report |
+
+New interview creation automatically requests a plan in the configured mode. On
+AI_UNAVAILABLE or AI_QUOTA, it saves a fixed-bank-fallback generation source and
+reason. AI_BUSY/AI_IN_PROGRESS instead ask the caller to retry later. No partial
+question plan is returned. Existing pre-AI interviews retain their fixed questions
+and answer review; start a new interview to use AI features.
+
+Follow-ups require a saved nonblank base answer, matching revision, active status,
+and matching session/server AI mode. They are appended; one per base question,
+two total, at most 12 total questions. The UI saves drafts first. A follow-up failure
+does not erase that save. All new routes enforce the same Clerk ownership rules.
+
+Reports require completed answers. Each answer entry has questionId, scores
+(dimension/value), strengths, missing, improvements, exact evidence quotes and an
+optional example (empty string when absent). Report content adds subject scores,
+improvement suggestions, summary and a coaching disclaimer. Source is mock/live.
+
+AI errors: 409 AI_IN_PROGRESS, AI_INPUT_CHANGED, AI_MODE_CHANGED, FOLLOWUP_LIMIT,
+DUPLICATE_QUESTION, STALE_INTERVIEW or INTERVIEW_ACTIVE; 429 AI_QUOTA/AI_BUSY;
+503 AI_UNAVAILABLE. Errors contain no provider credentials, prompts or answers.
+Timeout is 45 seconds on the server, 60 seconds for frontend AI requests (ordinary
+requests stay at 10 seconds). Repeated failed/uncertain operations do not call the
+provider again; start a new interview for a fresh attempt, subject to quotas.

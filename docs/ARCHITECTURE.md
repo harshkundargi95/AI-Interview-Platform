@@ -1,4 +1,4 @@
-# Architecture — Phase 5
+# Architecture — Phase 6
 
 ## Current data flow
 
@@ -9,13 +9,13 @@ service → Prisma → PostgreSQL → JSON snapshot → React reducer.
 Three local processes run: Vite (5173), Express (3001), PostgreSQL (55432 with the
 optional local helper). Production mode and remote database hosts are rejected
 until deployment is configured. Clerk keys and a Clerk application are required;
-there is no runtime development identity. No AI key is needed.
+there is no runtime development identity. Mock AI needs no key; live mode requires server-only Gemini configuration.
 
 ## Responsibilities
 
 - shared/interviewOptions.js defines valid tracks, levels, subjects and preferences.
 - server/src/data/questions.js selects 3–10 fixed questions with stable editorial IDs.
-- server/prisma/schema.prisma defines User, Interview, Question, Answer and FeedbackReport.
+- server/prisma/schema.prisma defines User, Interview, Question, Answer, FeedbackReport and AiOperation.
 - server/prisma/migrations/ contains reproducible SQL; seed.js adds one explicitly
   labeled development answer in an unfinished interview.
 - server/src/database.js creates the Prisma PostgreSQL adapter and enforces local use.
@@ -49,8 +49,8 @@ stale differing writes. Exact retries return the persisted result. Completion is
 active → completed only; different edits to completed answers return 409.
 
 FeedbackReport is a durable schema slot with source/content/model/rubric fields.
-There is no report generation yet; AI analysis begins in Phase 6. Fictional UI examples are not persisted
-as assessments of a real interview.
+Phase 6 persists mock/live reports with model and rubric versions. Mock reports
+are labeled demonstrations; they are never presented as real assessments.
 
 ## Identity and boundaries
 
@@ -67,7 +67,8 @@ awaiting the SDK; stale responses cannot populate another account. A 401 preserv
 the current draft until identity changes; sign-out confirms unsaved-edit loss.
 CORS is not authentication. No candidate code is executed.
 
-Answers remain local to the machine. Saved data persists until deleted; there is
+Saved answers remain in local PostgreSQL. In live mode, explicitly requested
+follow-ups/reports send relevant content to Gemini. Saved data persists until deleted; there is
 no one-hour expiry. Unsaved edits can still be lost on refresh/close. Browser-native
 close warnings cannot be guaranteed. No autosave, cross-tab merge or automatic
 current-session restoration is claimed.
@@ -76,5 +77,38 @@ current-session restoration is claimed.
 
 Existing responsive CSS, light/dark theme, reduced motion, keyboard focus and shared
 controls remain. Application code stores only theme preference in localStorage; Clerk manages its own authentication session.
-Phase 6 adds dynamic AI plans, bounded follow-ups and
-analysis; Phase 7 adds private resume/JD context. No future phase was implemented.
+Phase 6 implements dynamic AI plans, bounded follow-ups and analysis; live
+verification passed at provider/service/database layers on 2026-10-13. Phase 7 resume/JD context has not started.
+
+## AI request path
+
+Authenticated owner → persistent interview service → AiOperation claim/UTC quota
+under a PostgreSQL advisory transaction lock → mock or official Gemini provider →
+Zod and semantic validation → cached validated output → transaction persists the
+exact question/report → response to React. Provider calls run outside database
+transactions. No model has tools or database credentials.
+
+Plan slots come from existing track/subject coverage rules; live prompts receive
+slot subject/category, not fixed-bank question text. Returned count, slot identity
+and normalized duplicate text are checked. AI question IDs are server UUIDs.
+Follow-ups target one saved base answer, at most one per base and two total, and
+append to the question list. Revisions prevent late AI results changing completed
+or concurrently edited interviews. Completed answers are immutable.
+
+Reports cover each question once, enforce the category's rubric dimensions and
+0–5 integers, and require evidence that is an exact substring of the saved answer.
+The server computes per-subject averages and collects improvement suggestions.
+These checks validate structure/grounding, not factual correctness or fairness.
+
+The ledger stores ownership, stable operation key, input hash, status, configured
+model/rubric, attempts and token counts. Cached generated content is private data,
+not telemetry. Deletion clears cached content while retaining quota/idempotency
+metadata; a conditional completion write cannot resurrect deleted cache content.
+Uncertain calls are never automatically replayed, including after a crash. This
+limits duplicate charges but cannot guarantee a provider did not charge a timed-out
+call. Only explicit 429 rejection gets one bounded retry; SDK retries are disabled.
+
+The provider grammar retains minimum array lengths but omits maximum array/string
+length constraints for Gemini compatibility. Strict local contracts enforce every
+bound before persistence. Flash-Lite 3.1 uses minimal thinking; other configured
+models retain their default thinking settings and require separate verification.

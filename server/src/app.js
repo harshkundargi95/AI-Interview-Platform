@@ -9,7 +9,7 @@ export const localOrigins = [
   'http://127.0.0.1:4173', 'http://localhost:4173',
 ]
 
-export function createApp({ db, service, authOptions = {}, origins = localOrigins, environment = process.env.NODE_ENV } = {}) {
+export function createApp({ db, service, ai = null, authOptions = {}, origins = localOrigins, environment = process.env.NODE_ENV } = {}) {
   // Deployment remains Phase 10. No runtime development identity exists in Phase 5.
   if (environment === 'production') throw new Error('Deployment configuration is pending; this API remains local-only.')
   if (!origins.length || origins.some(origin => !localOrigins.includes(origin))) throw new Error('CORS origins must be an explicit subset of the supported local frontend origins.')
@@ -37,9 +37,10 @@ export function createApp({ db, service, authOptions = {}, origins = localOrigin
     else await fixture.health?.()
     res.json({ data: { status: 'ok', storage: db ? 'postgresql' : fixture.storage || 'temporary-memory', authentication: db ? 'clerk' : 'test-fixture' } })
   })
+  app.get('/api/v1/ai-config', (req, res) => res.json({ data: { mode: ai?.mode || 'disabled', maxFollowups: ai ? 2 : 0 } }))
   if (db) app.use('/api/v1/interviews', ...createAuthentication(db, {
     ...authOptions, authorizedParties: origins,
-  }))
+  }, ai))
   app.use((req, res, next) => {
     if (['POST', 'PUT'].includes(req.method) && !req.is('application/json')) return next(new ApiError(415, 'JSON_REQUIRED', 'Send application/json.'))
     next()

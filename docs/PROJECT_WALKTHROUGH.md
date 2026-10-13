@@ -2,7 +2,7 @@
 
 A phase-by-phase guide to understanding the project and explaining its code.
 
-**Status: Phases 0–5 completed, including 3.1. Phase 5 automated checks passed; live operation confirmed by the user on 2026-10-11. Phases 6–11 are planned.**
+**Status: Phases 0–5 completed, including 3.1. Phase 5 automated checks passed; live operation confirmed by the user on 2026-10-11. Phase 6 is verified in mock mode and with live backend checks; Phases 7–11 are planned.**
 Read [Phase 5](#phase-5--authentication-authorization-and-google-sign-in) for current account behavior and [Phase 4](#phase-4--postgresql-persistence) for storage. Earlier memory/expiry descriptions are historical.
 The detailed chapters below preserve the Phase 3 milestone. For the current expanded implementation, read [Phase 3.1 step by step](#phase-31--scope-configuration-and-fixed-bank-planning) first. Frontend-only, positional-ID and five-question descriptions below are historical. The current roadmap and brief supersede the old future-phase summaries, particularly dynamic question generation and follow-ups in Phase 6.
 
@@ -1155,3 +1155,162 @@ confirm B cannot see it, and explain why knowing its UUID does not grant access.
 
 Suggested commit when ready: feat: add Clerk authentication, Google sign-in and
 private interview ownership. No automatic commit or push is part of Phase 5.
+
+## Phase 6 — AI plans, follow-ups and coaching reports
+
+**Implementation and live backend checks passed 2026-10-13; browser journey not repeated.**
+Phase 5 was committed as ceed058 before this work. Phase 6 remains uncommitted.
+
+### 1. Keep AI separate from the rest of the application
+
+server/src/ai/provider.js exposes the same generate(kind, input, signal) interface
+for mock and live implementations. Mock returns deterministic demonstrations and
+makes no external calls. Live uses Google's official @google/genai SDK. Express
+and React do not depend on Gemini's response format directly: contracts.js parses
+it into our own validated data shape. Replacing a provider later does not require
+rewriting authentication, database ownership or the UI.
+
+AI_MODE defaults to mock. Live mode requires GEMINI_API_KEY and GEMINI_MODEL only
+on the server. Setup reads the public /ai-config endpoint, discloses the mode and
+explains that live requests send relevant content to Google. The API never returns
+keys. A key alone does not activate live mode. The configured model ID and rubric
+version are stored so reports are traceable, though provider aliases can change.
+
+Official references consulted: [structured output](https://ai.google.dev/gemini-api/docs/generate-content/structured-output)
+and [JavaScript generation configuration](https://googleapis.github.io/js-genai/release_docs/interfaces/types.GenerateContentConfig.html).
+Runtime schemas use Zod; structured model output is still validated server-side.
+
+### 2. Generate a plan, then freeze it
+
+The original selectQuestions coverage logic defines slots from the chosen track,
+subjects and technical/behavioral mix. A live plan request receives preferences
+and slot subject/category values, without bank question text. Gemini writes new
+questions. contracts.js requires exactly the requested number, matching subjects
+and categories in order, bounded text and no duplicate normalized question text.
+The server assigns IDs and stores the exact question text/order before returning
+it. Editing a bank or changing a provider later cannot rewrite a saved interview.
+
+When plan generation fails or a daily quota is exhausted, creation uses the fixed
+bank and persists source=fixed-bank-fallback plus a reason. The room visibly labels
+this fallback. Mock mode also uses bank questions but labels them as demonstrations.
+A running request or temporary concurrency limit asks for a retry instead of racing
+a second plan into the same interview.
+
+### 3. Add optional follow-ups without losing control of progress
+
+A session begins with 3–10 base questions. Save & ask a follow-up saves drafts first,
+then sends the chosen saved answer to the provider. At most one follow-up is allowed
+per base question and at most two per interview. A follow-up cannot itself trigger
+another follow-up. The generated question is appended, so the total is always the
+number actually saved (at most 12). Parent ID links it to its source answer.
+
+The response is applied only if status/revision still match. If another tab completes
+or edits the interview during generation, the new question cannot overwrite that
+state. If AI fails, the earlier answer save remains durable and the browser keeps
+the draft. Existing requests can retrieve an already appended follow-up safely.
+Editing a base answer later does not regenerate the already frozen follow-up.
+
+### 4. Save completion independently from coaching
+
+Complete interview first saves every answer and marks the session completed.
+Generate feedback is a separate action. This order matters: an unreliable provider
+must not prevent users from saving their work. Report failure leaves the answer
+review available and saved. A successful report is stored in FeedbackReport and
+reopened from History instead of regenerated on every page visit.
+
+Technical dimensions are correctness, relevance, reasoning/tradeoffs, clarity and
+depth appropriate to experience. Behavioral dimensions are relevance, structure,
+specificity and reflection. Integer scores run 0–5 with anchors documented in the
+provider's system instructions. Each response includes strengths, missing/incorrect
+points, actionable improvements and exact quotations from the submitted answer.
+Examples are optional and must not invent candidate achievements. The prompt accepts
+valid alternative approaches instead of requiring one canonical reference answer.
+
+The validator checks coverage, uniqueness, correct dimensions and score bounds.
+Every evidence quote must be present in the corresponding saved answer. Subject
+averages and improvement lists are derived on the server. These checks catch broken
+output and invented quotations; they do not establish that a judgment is accurate.
+Mock scores are always fixed examples and are labeled not an assessment. Live scores
+are coaching guidance, never hiring predictions. React renders model output as text.
+
+### 5. Understand the operation ledger
+
+The AiOperation table records owner, stable key, input hash, kind, status, configured
+model/rubric, attempt count and token usage. A PostgreSQL advisory transaction lock
+makes quota checks and claims atomic across API processes. Quotas are 30 operations
+per user per UTC day, one in flight per user and three globally. Provider calls
+happen after the claim transaction ends, so slow network calls do not hold DB locks.
+
+Keys come from server concepts: plan + creation request ID; follow-up + interview
+and parent ID; report + interview ID. A repeated successful key returns cached
+validated output. A reused key with changed content fails. In-flight calls return a
+useful conflict rather than generating twice. Exact cached generated content is
+private application data; telemetry fields contain no raw questions or answers.
+Deletion clears the content cache, while keeping quota counts and keys. A late
+provider completion cannot resurrect that content after deletion.
+
+Calls have a 45-second deadline. Plan/follow-up output is capped at 4,000 tokens;
+reports at 12,000. Client AI requests allow 60 seconds; ordinary requests stay at
+10 seconds. The SDK's retries are disabled. Our runner retries an explicit 429 only
+once. Timeout, unknown error, malformed output and process-crash uncertainty are
+not replayed automatically because the provider may already have billed them.
+This is a conservative duplicate-charge policy, not an exact billing guarantee.
+
+### 6. Test behavior separately from model quality
+
+The automated suite checks mock flow, provider-adapter shape, malformed schemas,
+wrong subjects/counts, duplicate questions, invented evidence, invalid scores,
+ownership rejection, durable quotas, concurrent claims, no replay, timeout, deletion
+during generation, completion races and persisted reports. These tests uncovered a
+Prisma adapter serialization-error variant; the transaction retry handler now
+recognizes its SQLSTATE 40001 as well as the standard Prisma conflict code.
+
+The evaluation dataset contains 16 hand-authored answers across DSA, DBMS, networks
+and behavioral interviews: strong, weak, irrelevant and instruction-manipulation
+examples. Offline checking only confirms dataset coverage. An explicit live script
+makes four report requests and checks strong scores exceed weak, with low scores
+for irrelevant/manipulation probes. Humans must still inspect reasoning, follow-up
+relevance, valid alternatives, selected-language fit and score consistency. This
+small probe set is not a benchmark and cannot establish fairness or real accuracy.
+
+### Learning checkpoint and remaining work
+
+Trace a request from the authenticated user, through the durable operation claim,
+provider validation, saved question/report and React display. Explain why completion
+and feedback generation are separate operations. Simulate a provider failure and
+show that saved answers survive. Explain why a repeated browser click does not
+necessarily mean a second provider request, and why a timeout cannot prove no charge.
+
+Current verification: 22 frontend + 46 server + 19 database tests, lint and build.
+No live Gemini result or new visual browser check is claimed. Add the server key
+and supported model, enable live mode, then verify a fresh question/follow-up/report
+journey and run the evaluation probes. Record actual results before marking Phase 6
+complete. Phase 7 personalization, Phase 8 voice and deployment remain future work.
+
+Phase 6 reliability follow-up (2026-10-12): serializable database retries now wait
+50–99ms and 100–149ms before their second and third attempts. This lets competing
+transactions finish instead of repeatedly colliding. Attempts remain bounded,
+and no Gemini call is replayed by the transaction helper. The fresh database
+suite passed all 19 tests after this correction.
+
+Phase 6 live setup (2026-10-13): the server-only key authenticated for model listing,
+and the app was configured for live gemini-3.8-flash. Generation still failed with
+provider overload/timeouts. Listing a model proves discovery access, not successful
+inference. No live scoring-quality or persistence-journey claim can be made from
+those failures; the acceptance gate remains open. See PROGRESS.md for exact evidence.
+
+### Phase 6 live compatibility fix — 2026-10-13
+
+The preceding blocked-check notes are historical. Live verification now passes.
+The responding model is gemini-3.1-flash-lite. provider.js sends a compact JSON
+schema, retains minimum list lengths, and uses minimal thinking for this model.
+The full contracts.js Zod schema still validates all output limits and evidence.
+Explicit rubric names/counts prevent incomplete score lists. evaluate-ai.js prints
+safe diagnostic metadata for failures. A new adapter test protects these changes.
+
+Follow the data flow: preferences → generated and persisted plan → saved answer →
+follow-up → completed answers → validated report → cached report on retry. A real
+synthetic-user PostgreSQL journey verified this flow, and all 16 evaluation probes
+passed. See PROGRESS.md for scores, checks and limitations. No new UI/OAuth manual
+check is claimed; start a fresh interview to try the new model because prior failed
+AI operation keys remain terminal to avoid replaying uncertain provider charges.

@@ -27,7 +27,7 @@ const answerSchema = z.strictObject({
   questionId: z.string().min(1).max(100),
   text: z.string().max(3000).refine((text) => text.trim().length > 0, 'Answer cannot be blank.'),
 })
-export const answersSchema = z.strictObject({ answers: z.array(answerSchema).min(1).max(10), revision: z.number().int().nonnegative().optional() })
+export const answersSchema = z.strictObject({ answers: z.array(answerSchema).min(1).max(12), revision: z.number().int().nonnegative().optional() })
 export function parse(schema, value) {
   const result = schema.safeParse(value)
   if (!result.success) {
@@ -38,5 +38,8 @@ export function parse(schema, value) {
 }
 export function parseId(value) { return parse(z.uuid(), value) }
 
-export const draftSchema = z.strictObject({ answers: z.array(answerSchema).max(10), revision: z.number().int().nonnegative().optional() })
+export const draftSchema = z.strictObject({ answers: z.array(answerSchema).max(12), revision: z.number().int().nonnegative().optional() })
 export const historySchema = z.strictObject({ skip: z.coerce.number().int().min(0).max(100000).default(0), take: z.coerce.number().int().min(1).max(50).default(20) })
+
+export const followupRequestSchema = z.strictObject({ questionId: z.string().min(1).max(100), revision: z.number().int().nonnegative() })
+export const emptySchema = z.strictObject({})

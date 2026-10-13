@@ -1,11 +1,12 @@
 import SessionSummary from '../components/SessionSummary.jsx'
-import { ButtonLink, Card, PageHeading } from '../components/ui.jsx'
+import { Button, ButtonLink, Card, PageHeading } from '../components/ui.jsx'
 import { sampleInterview as sample } from '../data/sampleInterview.js'
 import { useInterview } from '../interview/useInterview.js'
 
 export default function Feedback() {
-  const { session } = useInterview()
+  const { session, generateReport, busy, requestError } = useInterview()
   if (session?.status !== 'completed') return <SampleFeedback />
+  if (session.generation?.mode && session.generation.mode !== 'disabled') return <AiFeedback session={session} generateReport={generateReport} busy={busy} error={requestError} />
   return (
     <>
       <PageHeading eyebrow="Interview complete · Local session" title="You made time to practice.">All {session.questions.length} answers are ready to review. They are saved in PostgreSQL. Reopen this review from History at any time.</PageHeading>
@@ -39,3 +40,28 @@ function SampleFeedback({ embedded = false }) {
 
 
 
+
+function AiFeedback({ session, generateReport, busy, error }) {
+  const report = session.feedback
+  return <>
+    <PageHeading eyebrow="03 / Reflect" title="Your practice, a clearer next step.">Your answers are saved. Feedback is coaching guidance and can be wrong; it does not predict hiring outcomes.</PageHeading>
+    <Card><SessionSummary session={session} />
+      <h2>Your answer review</h2>
+      {session.questions.map((q, i) => <details key={q.id} className="answer-review"><summary>{i + 1}. {q.text}</summary><p className="answer-quote">{session.answers[q.id]}</p></details>)}
+    </Card>
+    {!report ? <Card><h2>Generate coaching feedback</h2><p>{session.generation.mode === 'live' ? 'Send these saved questions and answers to Gemini for a structured coaching report.' : 'Generate a mock report with fixed demonstration scores. This does not assess your answers or contact Gemini.'}</p>
+      <p role="status">{busy ? 'Preparing your report. Your answers are already saved…' : ''}</p>
+      {error && <p role="alert" className="form-error">{error}</p>}
+      <Button disabled={busy} onClick={generateReport}>{busy ? 'Generating…' : 'Generate feedback'}</Button>
+    </Card> : <>
+      <Card><span className="badge">{report.source === 'live' ? 'Live Gemini coaching' : 'Mock report · not an assessment'}</span><h2>Coaching report</h2><p>{report.content.summary}</p><p className="small-note">Model: {report.modelVersion} · Rubric: {report.rubricVersion}</p></Card>
+      <div className="three-column">{report.content.subjects.map(item => <Card key={item.subject}><h3>{item.subject.toUpperCase()}</h3><p className="score">{item.score}<span> / 5</span></p><ul>{item.improvements.map((v, i) => <li key={i}>{v}</li>)}</ul></Card>)}</div>
+      {report.content.answers.map(a => <Card key={a.questionId}><h3>{session.questions.find(q => q.id === a.questionId)?.text}</h3><p>{a.scores.map(s => `${s.dimension}: ${s.value}/5`).join(' · ')}</p><h4>Evidence from your answer</h4>{a.evidence.map((v, i) => <blockquote key={i}>{v}</blockquote>)}
+        {[['Strengths', a.strengths], ['Missing or incorrect points', a.missing], ['Try next', a.improvements]].map(([label, values]) => <div key={label}><h4>{label}</h4><ul>{values.map((v, i) => <li key={i}>{v}</li>)}</ul></div>)}
+        {a.example && <details><summary>Example improved answer</summary><p>{a.example}</p></details>}
+      </Card>)}
+      <p className="small-note">{report.content.disclaimer} Valid alternative approaches may be missed, and quoted evidence does not guarantee a correct judgment. Review suggestions critically.</p>
+    </>}
+    <div className="actions"><ButtonLink to="/setup">Practice again</ButtonLink><ButtonLink to="/history" variant="secondary">View history</ButtonLink></div>
+  </>
+}

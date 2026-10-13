@@ -1,7 +1,7 @@
 # Interview Practice
 
 A full-stack learning project for software developer internships and junior roles.
-**Current milestone: Phase 5 complete; live operation confirmed by the user on 2026-10-11.**
+**Current milestone: Phase 6 complete with live backend verification (2026-10-13). Phase 5 is pushed as ceed058.**
 
 ## What works
 
@@ -12,7 +12,7 @@ A full-stack learning project for software developer internships and junior role
 - Duplicate-safe starts and completion; backend validation and bounded requests.
 - Responsive interface, light/dark toggle, accessible controls and motion preferences.
 - Real PostgreSQL history, explicit Save progress, resume and deletion.
-- Clerk account screens, Google sign-in support and private interview ownership. Feedback illustrations stay fictional; no AI yet.
+- Clerk account screens, Google sign-in support and private interview ownership. Mock/live AI question plans, up to two optional follow-ups, and persisted coaching reports; live backend verification passed.
 
 ## Run locally
 
@@ -101,8 +101,8 @@ local PostgreSQL database by setting DATABASE_URL in server/.env.
 | npm run db:seed | Add an explicitly labeled development example |
 | npm run dev:server | Express with watch mode |
 | npm run dev | Vite on port 5173 |
-| npm test | 57 client/server checks; live-database tests run separately |
-| npm run test:db | Ten real PostgreSQL checks in a fresh disposable database |
+| npm test | 68 client/server checks; live-database tests run separately |
+| npm run test:db | Nineteen real PostgreSQL checks in a fresh disposable database |
 | npm run lint | Client, server and shared lint |
 | npm run build | Production frontend build |
 | npm run preview | Built frontend on port 4173; API/database still required |
@@ -186,6 +186,44 @@ are preferences: specialized matches are used where available; neutral questions
 cover gaps without substituting unrelated frontend content. Current specialist
 prompts cover React, Python, Java and PostgreSQL; other choices use neutral concepts.
 Difficulty adjusts the requested explanation depth within internship/junior scope.
-Questions are fixed, not AI-generated; AI plans, follow-ups and analysis arrive in
-Phase 6. Resume/JD personalization arrives in Phase 7. Code is never executed.
+In mock mode questions come from the fixed bank; live mode generates a new plan
+with Gemini. Outages use an explicitly labeled fixed-bank fallback. Resume/JD personalization arrives in Phase 7. Code is never executed.
 
+
+## Phase 6: AI setup and verification
+
+Default `AI_MODE=mock` makes no Gemini calls. Mock report scores are fixed examples,
+not assessments. Existing Clerk and database settings stay unchanged. Apply the
+new migration with `npm run db:generate` and `npm run db:migrate`.
+
+For live mode, add these to **server/.env only**, then restart the API:
+
+```dotenv
+AI_MODE=live
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+GEMINI_MODEL=gemini-3.1-flash-lite
+```
+
+The model ID is configurable and must be available to your key. Never put Gemini
+or Clerk secret keys in the client or in Git. Live mode sends interview preferences,
+questions and (when requesting follow-ups/reports) saved answers to Google.
+
+Start a new interview. The mode is disclosed in Setup and the question room.
+Use **Save & ask a follow-up** for up to two base questions; new questions appear
+at the end. Complete the interview, then choose **Generate feedback**. A report
+failure does not undo saved completion. Reopen reports through History.
+
+Checks: `npm test`, `npm run test:db`, `npm run lint`, `npm run build`.
+`npm run eval:ai --workspace server` checks the 16-case evaluation dataset without
+calling Gemini. For an explicitly authorized live check, run from server:
+`node scripts/evaluate-ai.js --live` (four bounded report calls). It records only
+subject-level scores, model and usage, not answer text. A passing small probe set
+is not a reliable estimate of model accuracy. See docs/PROGRESS.md for actual evidence.
+
+Limits: 30 AI operations per user per UTC day, one in flight per user, three globally,
+45 seconds per operation, one extra attempt only after an explicit provider 429.
+Ambiguous failures/timeouts are not replayed automatically: a provider may already
+have billed the call. A stale in-flight record after a process crash is not retried.
+Cached successes can be retrieved safely; unavailable reports keep the answer review.
+Phase 6 live generation, follow-up, persisted report and evaluation checks passed.
+No new browser/OAuth check is claimed. Phase 7 has not started.

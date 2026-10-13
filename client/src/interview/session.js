@@ -15,6 +15,12 @@ export function interviewReducer(session, action) {
   switch (action.type) {
     case 'start':
       return { ...action.session, savedAnswers: { ...action.session.answers }, index: Math.max(0, action.session.questions.findIndex(q => !action.session.answers[q.id])) }
+    case 'expanded':
+      if (session?.id !== action.session.id) return session
+      return { ...action.session, savedAnswers: { ...action.session.answers }, index: action.session.questions.length - 1 }
+    case 'report':
+      if (session?.id !== action.session.id) return session
+      return { ...session, feedback: action.session.feedback }
     case 'saved':
       if (session?.id !== action.session.id) return session
       return { ...session, revision: action.session.revision, savedAnswers: { ...action.session.answers } }

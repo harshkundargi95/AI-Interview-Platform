@@ -2,7 +2,7 @@
 
 These sections describe successive historical milestones. Earlier “next phase”
 prompts and limitations apply to that checkpoint; the current application is at
-Phase 5 completed (live operation confirmed by the user on 2026-10-11). Use PROJECT_WALKTHROUGH.md for the current code explanation and
+Phase 6 verified in mock mode and with live Gemini at backend layers. Use PROJECT_WALKTHROUGH.md for the current code explanation and
 REQUIREMENTS_CHECKLIST.md for completion tracking. Update these learning notes
 after each completed phase.
 
@@ -163,3 +163,21 @@ independent history, then explain why supplying A’s user ID cannot grant acces
 Learn why VITE_* keys are public, why the Clerk secret stays server-side, and why
 private React state must be cleared on account changes. Live operation was confirmed by the user on 2026-10-11; that report is separate
 from the signed-fixture automated tests. See PROGRESS.md.
+
+## Phase 6 checkpoint
+
+Understand a provider interface, schema validation versus factual validation,
+idempotency keys, persisted snapshots and database-backed quotas. Follow one request
+from Clerk identity to AI claim to Gemini/mock provider to PostgreSQL and back to
+React. Explain why a valid JSON response can still contain a wrong assessment.
+
+Exercises: request a follow-up and observe the changed total; reopen its exact text
+from History; generate a mock report and explain why its scores are not meaningful;
+contrast an explicit 429 retry with an uncertain timeout. Use the evaluation probes
+to question live model quality when configured, not to assume it. No live scoring
+accuracy is claimed until those results are recorded in PROGRESS.md.
+
+Live debugging checkpoint (2026-10-13): distinguish provider overload (503),
+request-schema rejection (400), and local validation failure. A successful HTTP
+response does not guarantee a valid report. Compact generation grammar and strict
+local validation have different jobs; see PROGRESS.md for the live probe results.

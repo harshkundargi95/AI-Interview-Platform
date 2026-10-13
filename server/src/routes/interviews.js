@@ -4,6 +4,8 @@ import { interviewController } from '../controllers/interviews.js'
 export function interviewRoutes(service) {
   const router = Router()
   const controller = interviewController(service)
+  router.post('/:id/followups', controller.followup)
+  router.post('/:id/report', controller.report)
   router.get('/', controller.list)
   router.delete('/:id', controller.remove)
   router.post('/', controller.create)

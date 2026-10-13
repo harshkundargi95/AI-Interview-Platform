@@ -9,7 +9,7 @@ export default function Landing() {
           <h1>Make room for<br /><span>your next opportunity.</span></h1>
           <p className="intro">A thoughtful space to prepare for software developer internships and junior roles across four tracks. One question, one reflection, one step forward.</p>
           <div className="actions"><ButtonLink to="/setup">Start practicing <span aria-hidden="true">↗</span></ButtonLink><ButtonLink to="/feedback" variant="secondary">See sample feedback</ButtonLink></div>
-          <p className="small-note">3–10 fixed-bank questions. Sign in to save progress and return to your interviews.</p>
+          <p className="small-note">3–10 base questions, with optional follow-ups. Sign in to save progress and return to your interviews.</p>
         </div>
         <Card className="hero-card" aria-labelledby="practice-heading">
           <div className="card-topline"><span className="eyebrow">The practice loop</span><span className="badge">Coming together</span></div>

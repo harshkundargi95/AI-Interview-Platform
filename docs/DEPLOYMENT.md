@@ -3,7 +3,7 @@
 No application has been deployed. Phase 4 source was pushed to GitHub at the user’s
 request; that is not a deployment. The user is configuring a Clerk application.
 
-## Current local setup — Phase 5
+## Current local setup — Phase 6
 
 See ../README.md for commands. server/.env requires DATABASE_URL and optionally PORT
 and CORS_ORIGINS. Clerk also requires CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY
@@ -84,3 +84,15 @@ authorized redirects configured in the provider dashboards. Never expose secrets
 in VITE_* or commit .env files. Use a regular browser for live Google checks.
 A public health response does not prove OAuth works. Phase 5 live verification is
 tracked separately in PROGRESS.md; no publication is authorized by this phase.
+
+## Phase 6 local AI configuration
+
+Keep Gemini secrets only in server/.env. AI_MODE=mock is the development default.
+Live mode requires a permitted GEMINI_MODEL and GEMINI_API_KEY; setting a key alone
+does not enable provider calls. Restart the API after configuration changes. Start
+a new interview after switching modes; old sessions cannot silently send mock
+answers to a newly enabled live provider. Apply migration 202610110001_ai_operations.
+
+Before deployment review provider data handling, budgets, model availability,
+quotas, retention and monitoring. The local ledger limits work but is not billing
+reconciliation. Existing production/network guards remain; nothing is published.

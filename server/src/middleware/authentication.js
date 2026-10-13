@@ -2,7 +2,7 @@ import { clerkMiddleware, getAuth } from '@clerk/express'
 import { ApiError } from './errors.js'
 import { createPersistentInterviewService } from '../services/persistentInterviews.js'
 
-export function createAuthentication(db, { publishableKey, secretKey, jwtKey, authorizedParties }) {
+export function createAuthentication(db, { publishableKey, secretKey, jwtKey, authorizedParties }, ai = null) {
   if (!/^pk_(test|live)_/.test(publishableKey || '') || !/^sk_(test|live)_/.test(secretKey || '')) throw new Error('Configure CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY in server/.env. Authentication cannot be bypassed.')
   if (!authorizedParties?.length) throw new Error('Explicit authorized frontend origins are required.')
   const verify = clerkMiddleware({ publishableKey, secretKey, jwtKey, authorizedParties })
@@ -24,7 +24,7 @@ export function createAuthentication(db, { publishableKey, secretKey, jwtKey, au
         update: {},
       })
       if (user.legacy) throw unauthorized()
-      req.interviewService = createPersistentInterviewService(db, user.id)
+      req.interviewService = createPersistentInterviewService(db, user.id, ai)
       next()
     },
   ]
