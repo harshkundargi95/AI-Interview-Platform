@@ -1,6 +1,177 @@
 # Progress
 
-## Current checkpoint
+## Current checkpoint — Phase 7 — 2026-10-15
+
+**Phase 7 complete for local development; live personalization verified.**
+Phase 6 is committed locally as c1632a5. Phase 7 is recorded in the local
+`feat: complete Phase 7 resume and job description personalization` commit; not pushed.
+The user selected local S3-compatible development storage; no cloud bucket or paid
+resources were provisioned. Phase 8 has not started.
+
+### Optional personalization controls — 2026-10-15
+
+Added a default-off switch for fresh setups, Technical / Behavioral / Mixed cards,
+and a 3–10 question selector inside Personalization. Both sets of type/count controls
+share Setup state and the existing subject-validation rules. Existing session context
+initializes the switch on. Turning it off retains the draft while Setup stays mounted,
+but removes the entire personalization object from the start request; it does not
+delete uploaded files or older interviews. Count means base questions, not extra
+resume questions. Theme tokens, keyboard focus, responsive stacking, and reduced
+motion are supported.
+
+Verification: all 24 client tests passed with a single worker, including a new
+submission-level regression for exclusion while off, draft restoration, two-way
+control synchronization, and behavioral subject reset. Initial parallel runs had
+intermittent existing journey waits fail; the full single-worker suite and isolated
+journey passed. Lint and production build passed. No live Gemini call or visual
+browser inspection was performed for this UI change. Reviewed documentation impact:
+walkthrough and checklist updated; backend/API contracts, deployment, architecture,
+README, learning notes and environment examples need no changes. Phase 8 not started.
+
+### User-confirmed resume personalization — 2026-10-15
+
+The user uploaded a resume, started a fresh interview, and confirmed that Gemini
+asked questions based on that resume. This is user-reported live browser evidence
+of resume personalization, supplementing the synthetic JD/resume comparisons below.
+No additional claim about JD coverage or balanced subject coverage in this specific
+interview is inferred. Phase 7 remains complete for local development; changes are
+uncommitted/unpushed and Phase 8 has not started.
+
+### Live personalization acceptance — 2026-10-15
+
+This checkpoint supersedes earlier pending/503 records below. Two direct live
+Gemini comparisons produced meaningfully different questions: React inventory
+context focused on ARIA, keyboard navigation, focus and component testing; CSS
+photo-gallery context focused on Grid/Flexbox, animation reflow and reduced motion.
+Both maintained the selected frontend/technical slots and junior scope.
+
+Both examples also passed through the real interview service and PostgreSQL:
+source gemini, exact questions persisted/reopened, and identical start retry reused
+the saved session. One intervening CSS service attempt fell back; a subsequent
+explicit synthetic check succeeded. Provider reliability is intermittent, not
+permanently fixed by this verification. The original historical failure has only
+AI_UNAVAILABLE recorded; its exact cause cannot be retrospectively established.
+
+Added bounded safe ledger categories: provider HTTP status, timeout, invalid output,
+and persistence failure. No raw errors, resumes or answers are logged. Public API
+errors, conservative retry policy and visible fixed-bank fallback are unchanged.
+25 database tests (including new diagnostic regression) and lint passed. Earlier
+23 client + 53 server tests and production build remain applicable; aggregate
+coverage is now 101 tests. No frontend changes in this fix. All synthetic live test
+records were deleted; the user's saved interview remains unchanged.
+
+App services restarted. Start a fresh interview for newly generated questions;
+completed fallback interviews keep their original questions and answers. No new
+browser interaction/OAuth check was performed. Local emulator and dependency risks
+below remain; no production deployment, commit, push or Phase 8 work performed.
+
+### Read-only inspection of the user interview — 2026-10-14
+
+Inspected the latest completed JD/resume interview without modifying it or sending
+its content to any provider. Five questions and five answers are persisted; the
+owner-scoped history includes it and reopening preserves all five answers. Its
+live Gemini report covers all questions and passes strict dimensions, score bounds
+and exact-evidence validation (this does not prove factual correctness).
+
+The saved provenance is fixed-bank-fallback with AI_UNAVAILABLE: the question-plan
+ledger failed once, while the report ledger succeeded once. Thus the user's live
+feedback confirmation is valid, but this interview did not use AI-personalized
+questions. The Phase 7 meaningful-context-change acceptance remains open. The
+ledger does not retain a provider-specific failure reason, so this inspection
+cannot establish whether that plan failed due to overload, timeout or validation.
+Health returned 200; unauthenticated interviews returned 401; frontend history HTML
+returned 200. No browser interaction tool was available; this was database/service
+and HTTP inspection, not a visual signed-in browser check. No personal text logged.
+
+### User-confirmed live journey — 2026-10-14
+
+The user completed an interview using a job description and uploaded resume and
+confirmed that feedback works. This verifies the live browser journey by user
+report; the assistant did not inspect that interview or its private contents.
+It does not yet establish that questions changed meaningfully with JD/resume
+context, so that specific acceptance item remains open. The earlier 503 failures
+are historical attempts, not evidence of a continuing outage.
+
+### Personalization design update — 2026-10-14
+
+Restyled the setup personalization panel at the user's request: numbered job/resume
+cards, theme-aware inputs, required/optional skill previews, character counts,
+upload presentation, file action cards and compact privacy disclosure. Added hover,
+focus and press styling, narrow-screen rules and reduced-motion support. Data flow
+and upload actions are unchanged. Lint, build and the existing personalization UI
+interaction test passed. No visual browser inspection was available.
+
+### Implemented
+
+- Optional bounded JD and resume/project text in interview preferences; editable
+  required/optional skill suggestions from an explicit keyword heuristic. No AI
+  extraction claim. Scope warnings keep selected subjects/experience authoritative.
+- Setup supports PDF/DOCX uploads, extracted-text editing, existing file selection,
+  authenticated downloads, file deletion and clearing personalization text.
+- New Resume model and additive fourth migration; existing interviews preserved.
+- S3 SDK adapter and loopback development emulator (storage:local, port 4569).
+  Objects use UUID keys and are not served by Express static routes. Application
+  links expire after 60 seconds and require the same authenticated owner as well
+  as an HMAC. Restarting the API invalidates outstanding links.
+- Authentication precedes file buffering. 2 MiB bytes limit, magic/extension checks,
+  DOCX structure checks, max 500 ZIP entries/20 MiB expanded bytes, max 20 PDF pages,
+  12,000 extracted characters, 8-second worker limit and 96 MiB V8 heap limit.
+  No OCR, HTML rendering, macro execution or external document-link fetching.
+- At most five file records per owner, one active upload/owner and two globally per
+  API process. Storage request deadlines. Parsing errors leave drafts intact and
+  allow a fresh upload. Failed storage operations keep cleanup metadata if necessary.
+- File/extracted-text retention is 24 hours. Expired files are immediately denied;
+  cleanup runs on API startup and every minute. Physical deletion waits for local
+  services to be available. Explicit delete revokes access before object removal.
+- Only reviewed context goes into question plans, not follow-up/report requests.
+  Resume emails/URLs are masked before provider transmission. Users must remove
+  names/phone numbers/confidential material themselves; this is not a complete PII
+  detector. Interview copies persist until the interview is deleted separately.
+- Personalized starts preserve exact questions; nested JSON equality now handles
+  PostgreSQL key reordering without treating identical retries as new requests.
+
+### Verification
+
+- 23 client + 53 server + 24 database tests = **100 passed**; lint/build passed.
+- Real DOCX/PDF fixtures parsed. Bad/tiny/spoofed/oversized/corrupt files rejected.
+- Signed-token database route tests cover auth, foreign access, expiry, deletion,
+  retry and nested-personalization idempotency. UI test checks editable skills and
+  preserved text after failed upload. Tests do not call Gemini.
+- Separate synthetic-user smoke check passed both formats through authenticated
+  routes, real PostgreSQL and actual local S3 put/get/delete. Test records removed.
+- Two live Gemini personalized-plan probes (React inventory vs CSS gallery) both
+  returned HTTP 503. No meaningful-context-change success is claimed. Repeat the
+  comparison when the provider responds; leave that acceptance gate unchecked.
+- PDF test exposed cleanup-method mismatch with installed PDF.js; fixed to destroy
+  its loading task. No new visual/browser or real OAuth check was performed.
+
+### Limits and documentation review
+
+The S3 emulator is development-only, archived upstream and trusts local-machine
+access. It is not production isolation and must never be exposed publicly. App
+account separation is enforced at Express; same-machine users can access local
+storage just as they can local database files. Replace with secured S3 storage for
+Phase 10 and verify bucket policy/credentials before any deployment.
+
+Dependency audit now reports 11 findings (7 high, 4 moderate): four prior Prisma
+chain findings, emulator busboy/dicer/s3rver findings, and moderate parser/formatting
+chains. No forced breaking dependency downgrade was applied. The emulator handles
+only app-generated requests on loopback, not direct public uploads. These findings
+remain a deployment blocker; the existing pg deprecation warning remains.
+
+Workers bound V8 heap/time, not a full OS sandbox or total native memory. No durable
+queue needed for short local synchronous parsing; larger/public workloads require
+resource/process isolation and distributed admission control. Upload retries can
+create another file after a lost successful response; use the visible file list to
+delete duplicates (bounded by five files).
+
+Reviewed/updated all nine existing docs, root/client/server READMEs and examples.
+No new secrets/config keys are needed for the fixed loopback emulator. Existing
+env examples remain valid. Suggested eventual commit: feat: add private resume
+uploads and job-based interview personalization. Wait for the remaining live gate
+and user confirmation before marking Phase 7 complete.
+
+## Historical Phase 6 checkpoint
 
 **Phase 6 complete with live backend verification — 2026-10-13.**
 Phase 5 was committed locally as **ceed058** at the user's request. The commit

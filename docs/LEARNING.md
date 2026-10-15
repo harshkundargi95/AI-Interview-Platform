@@ -181,3 +181,14 @@ Live debugging checkpoint (2026-10-13): distinguish provider overload (503),
 request-schema rejection (400), and local validation failure. A successful HTTP
 response does not guarantee a valid report. Compact generation grammar and strict
 local validation have different jobs; see PROGRESS.md for the live probe results.
+
+## Phase 7 learning checkpoint
+
+Trace a file from authenticated bytes to parser worker, S3 key, Resume metadata,
+editable text and final question-plan context. Explain why extensions alone cannot
+validate a file and why extracting plain text avoids rendering untrusted HTML.
+Explain why a valid signed link still needs account authorization, why file deletion
+cannot delete previously copied interview text automatically, and why a mock plan
+cannot prove personalization quality. Exercise: use two accounts to attempt the
+same download, edit the extracted text, and compare two job descriptions when live
+Gemini is available. Keyword skill suggestions need review; they are not AI extraction.

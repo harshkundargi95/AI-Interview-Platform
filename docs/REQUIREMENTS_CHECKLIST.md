@@ -234,34 +234,43 @@ only and the small evaluation is not an accuracy benchmark.
 ## Phase 7 — JD and resume personalization
 
 Add:
-- [ ] JD input with length limits.
-- [ ] Skill extraction with an editable user-visible summary.
-- [ ] PDF/DOCX resume upload.
-- [ ] Private storage and authorized, expiring download links.
-- [ ] File type and size validation.
-- [ ] Parsing with resource and time limits.
-- [ ] Editable extracted resume text.
-- [ ] Deletion and retention controls.
+- [x] JD input with length limits.
+- [x] Skill extraction with an editable user-visible summary.
+- [x] PDF/DOCX resume upload.
+- [x] Private storage and authorized, expiring download links.
+- [x] File type and size validation.
+- [x] Parsing with resource and time limits.
+- [x] Editable extracted resume text.
+- [x] Deletion and retention controls.
 
 AI question generation should:
-- [ ] Combine JD requirements with the selected track and experience level.
-- [ ] Respect explicit subject selections.
-- [ ] Prioritize required skills over optional ones.
-- [ ] Ask about relevant resume projects.
-- [ ] Avoid assuming experience absent from the resume.
-- [ ] Generate useful questions without a JD or resume.
-- [ ] Explain conflicts between selected scope and JD expectations.
-- [ ] Fall back to the matching question bank on failure.
+- [x] Combine JD requirements with the selected track and experience level.
+- [x] Respect explicit subject selections.
+- [x] Prioritize required skills over optional ones.
+- [x] Ask about relevant resume projects.
+- [x] Avoid assuming experience absent from the resume.
+- [x] Generate useful questions without a JD or resume.
+- [x] Explain conflicts between selected scope and JD expectations.
+- [x] Fall back to the matching question bank on failure.
 
 Send only necessary personal information to the provider.
 
 Introduce durable background jobs only if needed and explain the choice.
 
 Acceptance:
-- [ ] Questions change meaningfully with JD/resume context.
-- [ ] Invalid documents fail safely.
-- [ ] Private documents are inaccessible to other users.
-- [ ] Failed processing can be retried safely.
+- [x] Questions change meaningfully with JD/resume context.
+- [x] Invalid documents fail safely.
+- [x] Private documents are inaccessible to other users.
+- [x] Failed processing can be retried safely.
+
+Phase 7 evidence (2026-10-15): prior 100 automated tests, lint/build and real local
+S3 lifecycle checks passed. New diagnostic regression raises database tests to 25
+(101 aggregate). Two live Gemini context comparisons and persisted interview/retry
+checks passed: React inventory and CSS gallery produced materially different,
+subject-appropriate questions. An intervening fallback confirms provider availability
+can fluctuate. User confirmed browser upload/interview/feedback and, on 2026-10-15,
+resume-based questions in a fresh interview; no new assistant browser check. Local S3 emulator/dependency limitations remain documented
+in PROGRESS.md and DEPLOYMENT.md; completion is local-development scoped.
 
 ## Phase 8 — Turn-based voice answers
 
@@ -438,3 +447,14 @@ Acceptance:
 - [x] Explain HTTP, REST, JSON, status codes, fetch, and CORS.
 
 
+
+
+### Phase 7 optional setup refinement — 2026-10-15
+
+- [x] Explicit personalization opt-in/out; off excludes context from new requests
+  while preserving the current Setup draft (does not delete uploaded files).
+- [x] Technical / Behavioral / Mixed and 3–10 base-question controls inside the
+  optional section, synchronized with the existing main interview preferences.
+- [x] Client regression covers opt-out payload, restored draft, synchronized settings,
+  and behavioral subject reset. All 24 client tests passed with one worker; lint/build
+  passed. Visual browser verification was unavailable for this refinement.

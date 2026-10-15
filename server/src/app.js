@@ -1,3 +1,4 @@
+import { resumeRoutes } from './uploads/routes.js'
 import express from 'express'
 import { ApiError, errorHandler } from './middleware/errors.js'
 import { createAuthentication } from './middleware/authentication.js'
@@ -9,7 +10,7 @@ export const localOrigins = [
   'http://127.0.0.1:4173', 'http://localhost:4173',
 ]
 
-export function createApp({ db, service, ai = null, authOptions = {}, origins = localOrigins, environment = process.env.NODE_ENV } = {}) {
+export function createApp({ db, service, ai = null, storage = null, authOptions = {}, origins = localOrigins, environment = process.env.NODE_ENV } = {}) {
   // Deployment remains Phase 10. No runtime development identity exists in Phase 5.
   if (environment === 'production') throw new Error('Deployment configuration is pending; this API remains local-only.')
   if (!origins.length || origins.some(origin => !localOrigins.includes(origin))) throw new Error('CORS origins must be an explicit subset of the supported local frontend origins.')
@@ -41,6 +42,7 @@ export function createApp({ db, service, ai = null, authOptions = {}, origins = 
   if (db) app.use('/api/v1/interviews', ...createAuthentication(db, {
     ...authOptions, authorizedParties: origins,
   }, ai))
+  if (db && storage) app.use('/api/v1/resumes', ...createAuthentication(db, { ...authOptions, authorizedParties: origins }, ai), resumeRoutes(db, storage))
   app.use((req, res, next) => {
     if (['POST', 'PUT'].includes(req.method) && !req.is('application/json')) return next(new ApiError(415, 'JSON_REQUIRED', 'Send application/json.'))
     next()

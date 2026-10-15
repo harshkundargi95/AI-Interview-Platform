@@ -1,7 +1,9 @@
 # Interview Practice
 
 A full-stack learning project for software developer internships and junior roles.
-**Current milestone: Phase 6 complete with live backend verification (2026-10-13). Phase 5 is pushed as ceed058.**
+**Current milestone: Phase 7 complete for local development; live personalization verified. Phase 6 committed as c1632a5.**
+
+Previous milestone: Phase 6 complete with live backend verification (2026-10-13). Phase 5 is pushed as ceed058.
 
 ## What works
 
@@ -226,4 +228,19 @@ Ambiguous failures/timeouts are not replayed automatically: a provider may alrea
 have billed the call. A stale in-flight record after a process crash is not retried.
 Cached successes can be retrieved safely; unavailable reports keep the answer review.
 Phase 6 live generation, follow-up, persisted report and evaluation checks passed.
-No new browser/OAuth check is claimed. Phase 7 has not started.
+No new browser/OAuth check is claimed. Phase 7 verification is recorded below.
+
+## Phase 7: resumes and job descriptions
+
+Run `npm run storage:local` in another terminal along with `npm run db:local`,
+`npm run dev:server` and `npm run dev`. After updating dependencies, run
+`npm run db:generate` and `npm run db:migrate` for the additive Resume table.
+
+Setup accepts an optional job description, editable detected skills and PDF/DOCX
+resume (2 MB maximum). Review extracted text before starting. Files expire after
+24 hours; saved interview copies last until you delete the interview from History.
+Download links require your signed-in account and expire after 60 seconds.
+
+The S3 emulator uses port 4569 and server/.data/objects, is loopback-only and trusts
+this local machine. It is not suitable for public hosting. See docs/PROGRESS.md for
+101-test aggregate coverage, actual S3 checks, dependency risks and successful live personalization checks.

@@ -20,6 +20,7 @@
     "db:generate": "npm run db:generate --workspace server",
     "db:migrate": "npm run db:migrate --workspace server",
     "db:seed": "npm run db:seed --workspace server",
-    "test:db": "npm run test:db --workspace server"
+    "test:db": "npm run test:db --workspace server",
+    "storage:local": "npm run storage:local --workspace server"
   }
 }

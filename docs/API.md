@@ -161,3 +161,26 @@ DUPLICATE_QUESTION, STALE_INTERVIEW or INTERVIEW_ACTIVE; 429 AI_QUOTA/AI_BUSY;
 Timeout is 45 seconds on the server, 60 seconds for frontend AI requests (ordinary
 requests stay at 10 seconds). Repeated failed/uncertain operations do not call the
 provider again; start a new interview for a fresh attempt, subject to quotas.
+
+## Phase 7 resume and personalization API
+
+All /api/v1/resumes endpoints require Clerk bearer auth and owner checks.
+POST /resumes?filename=resume.pdf accepts application/octet-stream, up to 2 MiB.
+Returns {data:{id,filename,text,expiresAt}} after bounded parsing and storage.
+GET /resumes lists the current owner's unexpired ready files (at most five).
+POST /resumes/:id/link returns a relative path and expiry (60 seconds).
+GET that path requires both its HMAC/expiry and the owner's bearer token; response
+is an attachment with application/octet-stream. DELETE /resumes/:id revokes access
+and erases the file/text; cleanup retries physical deletion on storage failure.
+Expired or foreign files return 404. Invalid/oversized files return 400/413; parsing
+failure 422; upload concurrency/file limit 429; unavailable storage 503.
+
+Interview preferences optionally include personalization: jobDescription and
+resumeText (each max 12,000 chars), requiredSkills/optionalSkills (each max 30 entries,
+1–80 chars each). Context is copied into the interview and used only for plan
+requests. Deleting a resume does not remove an existing interview copy. The caller
+reviews and edits text; raw files and storage keys are never sent to Gemini.
+
+Internal AI ledger diagnostics distinguish AI_PROVIDER_<HTTP status>, AI_TIMEOUT,
+AI_INVALID_OUTPUT, AI_STORAGE_ERROR and AI_PROVIDER_ERROR. Public failures retain
+AI_UNAVAILABLE; no provider messages or private text are returned in diagnostics.

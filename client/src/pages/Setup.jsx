@@ -1,3 +1,4 @@
+import Personalization from '../components/Personalization.jsx'
 import { useAuthState } from '../auth/context.js'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -9,6 +10,7 @@ const options = (labels) => Object.entries(labels).map(([value, label]) => <opti
 export default function Setup() {
   const { session, startInterview, busy, requestError } = useInterview()
   const [preferences, setPreferences] = useState({ ...defaultPreferences, ...session?.preferences })
+  const [personalizationEnabled, setPersonalizationEnabled] = useState(Boolean(session?.preferences.personalization))
   const { api } = useAuthState()
   const [aiMode, setAiMode] = useState(api?.config ? null : 'disabled')
   useEffect(() => {
@@ -16,6 +18,7 @@ export default function Setup() {
     api?.config?.().then(config => { if (active) setAiMode(config.mode) }).catch(() => { if (active) setAiMode('unavailable') })
     return () => { active = false }
   }, [api])
+  const [uploadBusy, setUploadBusy] = useState(false)
   const navigate = useNavigate()
   const mounted = useRef(true)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
@@ -29,8 +32,10 @@ export default function Setup() {
   }
   async function start(event) {
     event.preventDefault()
-    if (error) return
-    const started = await startInterview(preferences)
+    if (error || uploadBusy) return
+    const submitted = { ...preferences }
+    if (!personalizationEnabled) delete submitted.personalization
+    const started = await startInterview(submitted)
     if (started && mounted.current) navigate('/interview')
   }
   return <>
@@ -54,11 +59,12 @@ export default function Setup() {
             <fieldset className="choice-group" disabled={busy}><legend>Relevant technologies (optional, up to 5)</legend>{Object.entries(technologyLabels).map(([value, label]) => <label key={value}><input type="checkbox" checked={preferences.technologies.includes(value)} disabled={!preferences.technologies.includes(value) && preferences.technologies.length >= 5} onChange={() => toggle('technologies', value)} />{label}</label>)}</fieldset>
           </div>
           <p className="small-note">Matching language/technology questions are preferred where available; otherwise we use language-neutral concepts within your chosen subjects. Behavioral interviews do not require technical subjects.</p>
+          <Personalization enabled={personalizationEnabled} onEnabledChange={setPersonalizationEnabled} onPreferenceChange={change} value={preferences.personalization} preferences={preferences} api={api} disabled={busy} onBusy={setUploadBusy} onChange={personalization => setPreferences(old => ({ ...old, personalization }))} />
           {session?.status === 'completed' && <p className="small-note">Starting again replaces your current local answer review.</p>}
           {error && <p role="alert" className="form-error">{error}</p>}
           <p role="status" className="small-note">{busy ? 'Loading your questions…' : ''}</p>
           {requestError && <p role="alert" className="form-error">{requestError}</p>}
-          <div className="actions"><Button type="submit" disabled={busy || Boolean(error) || !aiMode || aiMode === 'unavailable'}>{busy ? 'Loading…' : requestError ? 'Retry starting interview' : 'Start interview →'}</Button>{session?.status === 'completed' && <ButtonLink to="/feedback" variant="secondary">Review your answers</ButtonLink>}</div>
+          <div className="actions"><Button type="submit" disabled={busy || uploadBusy || Boolean(error) || !aiMode || aiMode === 'unavailable'}>{busy ? 'Loading…' : requestError ? 'Retry starting interview' : 'Start interview →'}</Button>{session?.status === 'completed' && <ButtonLink to="/feedback" variant="secondary">Review your answers</ButtonLink>}</div>
         </form>
       </Card>
       <aside className="stack" aria-label="Session guidance">

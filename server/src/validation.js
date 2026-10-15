@@ -3,6 +3,12 @@ import { ApiError } from './middleware/errors.js'
 import { roleLabels, experienceLabels, typeLabels, difficultyLabels, subjectLabels, languageLabels, technologyLabels, configurationError } from '../../shared/interviewOptions.js'
 
 const uniqueChoices = (labels, max) => z.array(z.enum(Object.keys(labels))).max(max).refine((items) => new Set(items).size === items.length, 'Choose each option only once.')
+export const personalizationSchema = z.strictObject({
+  jobDescription: z.string().trim().max(12000).default(''),
+  resumeText: z.string().trim().max(12000).default(''),
+  requiredSkills: z.array(z.string().trim().min(1).max(80)).max(30).default([]),
+  optionalSkills: z.array(z.string().trim().min(1).max(80)).max(30).default([]),
+})
 export const preferencesSchema = z.strictObject({
   role: z.enum(Object.keys(roleLabels)),
   type: z.enum(Object.keys(typeLabels)),
@@ -12,6 +18,7 @@ export const preferencesSchema = z.strictObject({
   subjects: uniqueChoices(subjectLabels, 9).default([]),
   language: z.enum(Object.keys(languageLabels)).default('neutral'),
   technologies: uniqueChoices(technologyLabels, 5).default([]),
+  personalization: personalizationSchema.optional(),
   questionCount: z.number().int().min(3).max(10).default(5),
 }).superRefine((preferences, ctx) => {
   const message = configurationError(preferences)

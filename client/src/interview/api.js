@@ -4,16 +4,17 @@ export class RequestError extends Error {
   constructor(message, code) { super(message); this.code = code }
 }
 
-export async function request(path, { method = 'GET', body, token, timeout = 10000 } = {}) {
+export async function request(path, { method = 'GET', body, token, raw, download = false, timeout = 10000 } = {}) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeout)
   try {
     const response = await fetch(`${API_URL}${path}`, {
       method, signal: controller.signal,
-      headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: 'Bearer ' + token } : {}) },
-      ...(body ? { body: JSON.stringify(body) } : {}),
+      headers: { ...(raw ? { 'Content-Type': 'application/octet-stream' } : body ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      ...(raw ? { body: raw } : body ? { body: JSON.stringify(body) } : {}),
       credentials: 'omit',
     })
+    if (download && response.ok) return response.blob()
     const payload = await response.json()
     if (response.status === 401) throw new RequestError('Your session expired. Sign out and sign in again. Saved answers are safe; copy unsaved edits before signing out.', 'AUTH_REQUIRED')
     if (!response.ok) throw new RequestError(payload.error?.message || 'The server could not process the request.', payload.error?.code)
@@ -37,6 +38,10 @@ export function createInterviewApi(getToken) {
     return request(path, { ...options, token })
   }
   return {
+  resumes: () => authorizedRequest('/resumes'),
+  uploadResume: file => authorizedRequest('/resumes?filename=' + encodeURIComponent(file.name), { method: 'POST', raw: file, timeout: 20000 }),
+  removeResume: id => authorizedRequest('/resumes/' + id, { method: 'DELETE' }),
+  downloadResume: async id => { const link = await authorizedRequest('/resumes/' + id + '/link', { method: 'POST' }); return authorizedRequest(link.path, { download: true }) },
   config: () => authorizedRequest('/ai-config'),
   followup: (id, questionId, revision) => authorizedRequest(`/interviews/${id}/followups`, { method: 'POST', timeout: 60000, body: { questionId, revision } }),
   report: id => authorizedRequest(`/interviews/${id}/report`, { method: 'POST', timeout: 60000, body: {} }),

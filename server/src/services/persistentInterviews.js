@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util'
 import { randomUUID } from 'node:crypto'
 import { setTimeout as delay } from 'node:timers/promises'
 import { aggregate, MAX_FOLLOWUPS, normalize, RUBRIC } from '../ai/contracts.js'
@@ -80,7 +81,7 @@ export function createPersistentInterviewService(db, ownerId, ai = null) {
     async create({ requestId, preferences }) {
       const previous = await db.interview.findUnique({ where: { ownerId_requestId: { ownerId, requestId } }, include })
       if (previous) {
-        if (Object.keys(preferences).some(k => JSON.stringify(previous.preferences[k]) !== JSON.stringify(preferences[k]))) throw new ApiError(409, 'REQUEST_ID_REUSED', 'Use a new request ID for different preferences.')
+        if (!isDeepStrictEqual(previous.preferences, preferences)) throw new ApiError(409, 'REQUEST_ID_REUSED', 'Use a new request ID for different preferences.')
         return { session: snapshot(previous), created: false }
       }
       let questions = selectQuestions(preferences)
@@ -100,7 +101,7 @@ export function createPersistentInterviewService(db, ownerId, ai = null) {
         if (existing) {
           if (JSON.stringify(existing.preferences) !== JSON.stringify(preferences)) {
             // PostgreSQL jsonb reorders object keys; compare canonical values.
-            if (Object.keys(preferences).some(key => JSON.stringify(existing.preferences[key]) !== JSON.stringify(preferences[key]))) {
+            if (!isDeepStrictEqual(existing.preferences, preferences)) {
               throw new ApiError(409, 'REQUEST_ID_REUSED', 'Use a new request ID for different preferences.')
             }
           }

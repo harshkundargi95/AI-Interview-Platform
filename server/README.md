@@ -29,3 +29,5 @@ npm run eval:ai checks the offline probe dataset. Explicit live evaluation from
 this workspace: node scripts/evaluate-ai.js --live (AI_MODE=live required).
 Neither ordinary tests nor database tests call Gemini. Live evaluation is not part
 of automatic tests and must be authorized; no key or full provider error is logged.
+
+Phase 7 adds uploads/ routes, bounded parser workers and Resume metadata. Start npm run storage:local (loopback emulator on 4569), then apply db:generate/db:migrate. Files expire after 24h; cleanup runs at startup/every minute. This emulator is not production storage; see docs/DEPLOYMENT.md and PROGRESS.md for advisories and live verification evidence.

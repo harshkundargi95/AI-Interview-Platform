@@ -112,3 +112,16 @@ The provider grammar retains minimum array lengths but omits maximum array/strin
 length constraints for Gemini compatibility. Strict local contracts enforce every
 bound before persistence. Flash-Lite 3.1 uses minimal thinking; other configured
 models retain their default thinking settings and require separate verification.
+
+## Phase 7 data flow
+
+Clerk → owner mapping → raw upload limit → isolated parser worker → pending Resume
+metadata → local S3 object → ready metadata with extracted text and 24h expiry.
+Setup shows that text for editing. Reviewed text/skills are copied to interview
+preferences; only the plan provider receives context. Existing server-selected
+subject/category slots, validation, fixed fallback and stored UUID questions remain.
+No background queue: parsing is bounded to eight seconds and returned synchronously.
+Expired records deny access before cleanup. Deletion revokes access before storage
+removal; pending records enable eventual cleanup when local storage is available.
+Signed application download paths also require the owner's bearer token; they
+never expose a public object URL. The loopback emulator is not a secure cloud bucket.

@@ -1314,3 +1314,111 @@ synthetic-user PostgreSQL journey verified this flow, and all 16 evaluation prob
 passed. See PROGRESS.md for scores, checks and limitations. No new UI/OAuth manual
 check is claimed; start a fresh interview to try the new model because prior failed
 AI operation keys remain terminal to avoid replaying uncertain provider charges.
+
+## Phase 7 — Resume and job-description personalization (2026-10-14)
+
+Status: implementation and local verification done; live question-change acceptance
+pending after two provider 503 responses. Phase 8 has not started.
+
+### Step 1: represent reviewed context
+
+validation.js adds optional personalization inside existing interview preferences.
+This preserves older sessions and avoids a separate context schema migration.
+shared/personalization.js extracts a small known vocabulary with required/preferred
+section heuristics and generates scope warnings. The user can edit every suggestion.
+Role/experience/selected subjects remain authoritative even for a senior JD.
+
+### Step 2: validate and parse uploaded files
+
+uploads/parse.js verifies extension/signature/byte limits, then starts a worker with
+an eight-second deadline and bounded V8 heap. parse-worker.js checks ZIP entries
+and expanded sizes before DOCX raw-text extraction using Mammoth. PDF.js extracts
+text from at most twenty pages. Empty/scanned, corrupt and excessive text is rejected.
+The app never displays generated HTML or executes document macros. Fixtures in
+server/test/fixtures contain only synthetic project descriptions.
+
+### Step 3: store ownership separately from file bytes
+
+Migration 202610140001_resumes adds Resume metadata, owner foreign key, storage key,
+state and expiry. uploads/storage.js uses AWS S3 SDK against the local emulator.
+UUID object names prevent filename path traversal. Pending rows track failed writes
+for cleanup. Authentication runs before body buffering and every operation is owner
+scoped. Five-file/account limits constrain accidental retries after lost responses.
+
+### Step 4: review, download and delete
+
+Personalization.jsx handles file selection, upload progress, extracted-text editing,
+skill editing and error preservation. The client API supports binary uploads and
+blob downloads. The signed download path lives for sixty seconds, is HMAC-bound to
+the owner and still requires bearer authentication. Deletion revokes access first;
+cleanup retries storage deletion. Files expire at 24 hours. Starting an interview
+copies reviewed context into its preferences; delete that interview separately to
+remove that copy. This retention distinction is displayed in Setup.
+
+### Step 5: generate within the selected scope
+
+provider.js treats JD/resume/skills as untrusted data. Required skills take priority,
+projects may ground questions, and absent experience must not be invented. Raw files
+are not sent to Gemini. Reviewed text goes only to plans; follow-ups/reports receive
+base preferences and the relevant questions/answers. Resume email/URL masking is
+best-effort; users must remove other identifying/confidential text themselves.
+Exact questions are still validated and persisted before presentation. Outages use
+the existing visible matching fixed bank. Mock mode remains fixed-bank demonstration.
+
+### Verification and limits
+
+100 automated tests pass; real S3 + PostgreSQL lifecycle checks pass for both formats.
+Tests caught the installed PDF.js cleanup API difference and PostgreSQL JSON key
+ordering in nested preference retries; both were fixed with regressions. Live context
+comparison remains unverified because Gemini returned 503, so Phase 7 is not marked
+fully complete. No new browser/OAuth inspection was performed. Local storage is a
+trusted-machine emulator with known advisories, not production isolation. See
+PROGRESS.md for exact evidence, retention, native-memory and deployment limitations.
+
+Phase 7 user check (2026-10-14): the user completed an interview with JD/resume
+and received feedback. This is user-reported live browser evidence. Whether the
+questions meaningfully reflected that context remains to be confirmed.
+
+### Phase 7 acceptance closeout — 2026-10-15
+
+The earlier pending notes are historical. Live React-inventory and CSS-gallery
+examples now produce different questions matched to their projects and required
+skills. Both passed the real service/database persistence and replay checks. A
+provider failure occurred between successful checks, so fallback remains necessary.
+operations.js now records safe failure categories instead of losing every cause
+behind AI_UNAVAILABLE. Learn to distinguish successful personalization from provider
+uptime: one is an application acceptance check, the other is an ongoing dependency.
+No prior interview was rewritten. Phase 7 is complete locally; production storage
+and dependency risks remain in DEPLOYMENT.md. Suggested commit: feat: add private
+resume uploads and job-based interview personalization. Phase 8 awaits user request.
+
+
+### Phase 7 refinement: choose how to personalize (2026-10-15)
+
+Setup now owns a separate `personalizationEnabled` boolean. A fresh setup starts
+with it off; a setup initialized from an interview with saved context starts on.
+`Personalization.jsx` displays the switch and, when enabled, question-style cards,
+a question-count selector and the existing editable JD/resume fields. Technical
+focuses on concepts and project decisions, Behavioral on experiences and teamwork,
+and Mixed uses the existing technical/behavioral slot plan. The resume is context
+for those styles, not a fourth interview type. Selected subjects still constrain
+technical slots.
+
+Both the main form and these new controls update the same `preferences.type` and
+`preferences.questionCount` through Setup's `change` function. This is React's
+single-source-of-truth pattern: there is no second count to accidentally disagree
+with the backend. Behavioral selection also clears technical subjects as before.
+The 3–10 count covers base questions, with up to two optional follow-ups unchanged.
+
+At submission, Setup copies preferences and removes `personalization` if the switch
+is off. Hiding the fields alone would not prevent data being sent; excluding the
+object at this boundary is what makes opting out effective. Draft text survives
+switching off/on while Setup remains mounted. Uploaded files and historical
+interviews are not deleted by the switch. Use their existing delete actions.
+
+`setup-personalization.test.jsx` checks the submitted payload, draft restoration,
+synchronization in both directions, and behavioral subject reset. CSS uses existing
+light/dark tokens, visible keyboard focus, responsive cards and reduced-motion rules.
+Learning exercise: change the count in either place and explain why both selectors
+update; inspect a start request with personalization off and confirm that it has
+no personalization property.

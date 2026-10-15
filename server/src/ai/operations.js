@@ -31,6 +31,7 @@ export function createAiOperations(db, provider, { dailyLimit = 30, timeoutMs = 
     let timer
     const deadline = new Promise((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error('AI timeout')) }, timeoutMs) })
     let attempts = 0
+    let stage = 'provider'
     try {
       const work = async () => {
         for (;;) {
@@ -45,12 +46,19 @@ export function createAiOperations(db, provider, { dailyLimit = 30, timeoutMs = 
         }
       }
       const result = await Promise.race([work(), deadline])
+      stage = 'validation'
       const data = validateOutput(kind, result.data, input)
+      stage = 'storage'
       const stored = await db.aiOperation.updateMany({ where: { id, status: 'running' }, data: { status: 'succeeded', result: data, inputTokens: result.inputTokens, outputTokens: result.outputTokens } })
       if (!stored.count) throw new Error('Operation was cancelled')
       return data
-    } catch {
-      await db.aiOperation.updateMany({ where: { id, status: 'running' }, data: { status: 'failed', errorCode: 'AI_UNAVAILABLE' } })
+    } catch (error) {
+      // Store only bounded categories, never provider messages, prompts or answers.
+      const errorCode = controller.signal.aborted ? 'AI_TIMEOUT'
+        : stage === 'validation' ? 'AI_INVALID_OUTPUT'
+          : stage === 'storage' ? 'AI_STORAGE_ERROR'
+            : Number.isInteger(error.status) && error.status >= 400 && error.status <= 599 ? `AI_PROVIDER_${error.status}` : 'AI_PROVIDER_ERROR'
+      await db.aiOperation.updateMany({ where: { id, status: 'running' }, data: { status: 'failed', errorCode } })
       throw failed()
     } finally { clearTimeout(timer) }
   } }

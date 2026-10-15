@@ -96,3 +96,14 @@ answers to a newly enabled live provider. Apply migration 202610110001_ai_operat
 Before deployment review provider data handling, budgets, model availability,
 quotas, retention and monitoring. The local ledger limits work but is not billing
 reconciliation. Existing production/network guards remain; nothing is published.
+
+## Phase 7 local-only storage gate
+
+Start `npm run storage:local`; port 4569, bucket resumes, files server/.data/objects.
+Never expose this development emulator or its fixed development credentials. It is
+archived upstream and has dependency advisories. Production requires a maintained,
+private S3-compatible service, restricted credentials, verified bucket policy and
+lifecycle cleanup, resource isolation and shared upload limits. No deployment added.
+Retention cleanup runs while the API is running; inaccessible expired content may
+remain physically present until API and storage are both available. Database
+interview copies have their own explicit deletion lifecycle.

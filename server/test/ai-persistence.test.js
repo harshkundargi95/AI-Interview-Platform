@@ -144,4 +144,19 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('durable AI workflow', () => {
     expect(result.status).toBe(200)
     expect(result.body.data.answers).toEqual(saved.answers)
   })
+  it('records safe provider, validation and timeout categories without raw errors', async () => {
+    for (const [name, provider, options, expected] of [
+      ['overload', { mode: 'live', model: 'test', generate: async () => { throw Object.assign(new Error('private provider details'), { status: 503 }) } }, {}, 'AI_PROVIDER_503'],
+      ['invalid', { mode: 'live', model: 'test', generate: async () => ({ data: {} }) }, {}, 'AI_INVALID_OUTPUT'],
+      ['timeout', { mode: 'live', model: 'test', generate: () => new Promise(() => {}) }, { timeoutMs: 10 }, 'AI_TIMEOUT'],
+    ]) {
+      const { ai, user } = await setup(provider, options)
+      await expect(ai.run(user.id, name, 'followup', { questions: [] })).rejects.toMatchObject({ code: 'AI_UNAVAILABLE' })
+      const row = await db.aiOperation.findUnique({ where: { ownerId_key: { ownerId: user.id, key: name } } })
+      expect(row.errorCode).toBe(expected)
+      expect(row.result).toBeNull()
+      expect(JSON.stringify(row)).not.toContain('private provider details')
+    }
+  })
+
 })

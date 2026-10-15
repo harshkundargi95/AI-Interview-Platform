@@ -65,6 +65,7 @@ model User {
   createdAt DateTime @default(now())
   interviews Interview[]
   aiOperations AiOperation[]
+  resumes Resume[]
 }
 
 // Durable idempotency and usage ledger; no raw prompts/answers in telemetry fields.
@@ -87,4 +88,18 @@ model AiOperation {
   updatedAt DateTime @updatedAt
   @@unique([ownerId, key])
   @@index([ownerId, createdAt])
+}
+
+model Resume {
+  id String @id @default(uuid()) @db.Uuid
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  state String @default("pending")
+  objectKey String @unique
+  filename String
+  type String
+  text String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([ownerId, expiresAt])
 }

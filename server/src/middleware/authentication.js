@@ -24,6 +24,7 @@ export function createAuthentication(db, { publishableKey, secretKey, jwtKey, au
         update: {},
       })
       if (user.legacy) throw unauthorized()
+      req.ownerId = user.id
       req.interviewService = createPersistentInterviewService(db, user.id, ai)
       next()
     },

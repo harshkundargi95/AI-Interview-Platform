@@ -21,3 +21,5 @@ labels source/fallback, shows base/follow-up progress and offers optional follow
 Feedback renders the stored report as escaped React text. Generating reports is a
 separate action after durable completion. AI failures retain answers; no autosave.
 Never put GEMINI_API_KEY in VITE_*; all provider requests happen on the server.
+
+Phase 7 Setup includes reviewed JD/skills/resume text and authenticated upload/download/delete. Uploaded text remains editable; failures preserve drafts. See the setup disclosure for provider sharing and separate file/interview retention.
