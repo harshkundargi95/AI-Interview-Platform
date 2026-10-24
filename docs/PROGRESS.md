@@ -1,6 +1,208 @@
 # Progress
 
-## Current checkpoint — Phase 7 — 2026-10-15
+## Current checkpoint — Phases 8 and 9 accepted — 2026-10-24
+
+The user confirmed “phase 9 and phase 8 everything is wokring” after receiving
+both manual checklists. Record this as user-reported acceptance of the voice flow
+and real-account interview journey, not assistant-observed verification of every
+individual browser step. Phases 8 and 9 are complete for local development.
+The earlier pending manual gates below are historical and superseded by this note.
+
+Prior automated results remain 34 client + 60 server + 33 database + 1 Chromium
+checks, with lint/build, secret scan and live synthetic Gemini evaluations passed.
+No tests rerun for this documentation-only acceptance update. Known local emulator
+vulnerabilities, production restrictions and other documented risks remain.
+Remote CI has not run; no commit/push/deployment performed. Phase 10 deployment
+preparation is next and has not been started. Updated README, roadmap, checklist,
+walkthrough, learning and deployment notes to reflect this confirmation.
+
+
+## Startup instruction correction — 2026-10-24
+
+User followed the main three-terminal README instructions. Direct checks found
+frontend/API/database healthy, readiness 503 and local resume storage unavailable.
+Updated the main startup section to list all four required services; the Phase 7
+storage command had previously appeared only later in the README. This does not
+prove the cause of an earlier transient browser network error: the API was reachable
+at inspection time. No phase acceptance status changed.
+
+## Historical checkpoint — Phase 9 — 2026-10-23
+
+**Security/reliability implementation verified locally. Real Clerk browser recheck
+pending; Phase 8 microphone acceptance remains pending.** The user explicitly
+requested Phase 9 despite that earlier manual gate. Phase 10 has not started.
+Phase 8 and Phase 9 remain uncommitted/unpushed; last pushed commit is 12e7ffa.
+
+Implemented:
+- Fresh server-generated request IDs in headers/error envelopes; allowlisted JSON
+  logs contain method, route template, status, duration and error category only.
+  No request URLs/query strings, identities, tokens, raw exceptions, bodies or audio.
+- Process-local IP limit 240/minute before authentication; account limit 120/minute
+  per protected route family after verification; bounded limiter map and Retry-After.
+  Forwarded-IP headers are not trusted. Preflight/probes are exempt.
+- API deny-all CSP, frame denial, no-referrer, nosniff and no-store; existing explicit
+  CORS and bearer-only authorization retained. No cookie-only mutations, so no new
+  CSRF token scheme. Frontend hosting headers belong to Phase 10.
+- Database-backed shared ceiling: 30 operations/user/day and 500/server/day,
+  configurable with positive integer AI_DAILY_LIMIT / AI_GLOBAL_DAILY_LIMIT.
+  Counts rows created OR updated today so prior-day retries cannot bypass limits.
+  These are conservative operation ceilings, not currency/token billing limits.
+- /live for process liveness; /ready checks PostgreSQL and configured resume storage
+  with a 2-second response deadline, returning generic 503 on failure/draining.
+  /health remains compatible. Query/idle-transaction limits, HTTP header/body
+  deadlines, and bounded graceful shutdown added. Upload timeout stops slow bodies.
+- Local monitoring config/CLI alerts on error events or >=20% 5xx among at least
+  five requests in five minutes. No external telemetry or paid monitoring service.
+- GitHub Actions config: install/generate, lint, unit/component/database tests,
+  build/secret scan, runtime audit, evaluation dataset, Chromium journey.
+  Workflow is prepared but has NOT run on GitHub; nothing pushed.
+- Playwright standalone fixture uses ephemeral signed JWTs verified by the real
+  Clerk backend middleware, real Express/Prisma/PostgreSQL and explicit mock AI.
+  It has a separate frontend entry and temporary database; it is never imported
+  by the normal app. Google OAuth/Clerk hosted UI are not exercised by this fixture.
+- Compatible Prisma 7.10.1 update; no forced major upgrade. Runtime audit: zero
+  vulnerabilities. Full audit: four findings (3 high, 1 moderate), all the local-only
+  S3rver chain (s3rver/busboy/dicer/fast-xml-parser). Do not publish this emulator.
+
+Verification:
+- 34 client tests, 60 ordinary server tests and 33 isolated PostgreSQL tests passed;
+  one Chromium full journey passed (128 checks in these suites). Database tests
+  include fresh migrations, actual API restart, ownership, quotas, concurrency,
+  idempotency, failed AI calls, private uploads and transcript retention.
+- Browser: signed fixture login -> configure -> three answers -> feedback -> history
+  reload -> reopen -> delete -> sign out. Malicious-looking report markup remained
+  literal text and did not execute. Real user OAuth recheck requested separately.
+- Frontend, /live and /ready returned HTTP 200 with all local services running.
+- Lint/build passed. Secret scan passed on current tracked/untracked source,
+  committed HEAD and built client assets. Local real secret values never printed;
+  the exact documented local database fixture is explicitly recognized as public.
+  Pattern scanning is not an exhaustive guarantee or a scan of all Git history.
+- Runtime audit passed; known emulator findings documented below and in DEPLOYMENT.
+  Monitoring synthetic high-error alert check passed. All checks run locally.
+- Live Gemini (configured gemini-3.5-flash-lite): four six-question plans passed
+  subject/category/count validation, and ten report calls passed all 40 probes
+  (strong, weak, irrelevant, instruction manipulation). All four role tracks plus
+  CN/OOP/DSA/DBMS/OS, programming and behavioral content covered. Strong means
+  4.6–5, weak 0.75–2, irrelevant <=0.8, manipulation <=0.2 in this small sample.
+  Questions were relevant and junior-appropriate but frequently broad recall
+  prompts; one general OOP question emphasized inheritance benefits rather than
+  composition tradeoffs. This is not a calibrated benchmark or accuracy claim.
+  Only hand-written synthetic content sent, max 14 calls, no automatic eval retries.
+- Initial restart regression still searched for the old plain startup message;
+  updated to recognize the structured server_started event, then passed. The dataset
+  regression expected the old 16 cases; expanded to assert 40 cases, all roles and
+  the five core subjects, then rerun. Initial
+  client run was slow; normal workspace rerun passed. pg@9 query deprecation remains.
+
+Audit conclusions / remaining risks:
+- Authorization: signed-token adversarial tests and cross-account read/write/delete,
+  feedback/resume/voice restrictions pass. UI gates are convenience; server decides.
+- Validation: strict Zod bounds, revision/UUID checks, JSON/file/audio limits,
+  worker parser resource bounds and exact evidence quotes remain enforced.
+- Rendering: React text, no unsafe HTML execution; browser injection probe passed.
+- Privacy: resume files/text expire after 24h and deletion revokes access before
+  storage removal; storage outage cleanup retries. Interview context/answers/reports
+  persist until user deletion; copied resume context is not erased by deleting its
+  original upload. AI hashes/usage metadata remain to prevent quota reset. Orphan
+  plan caches and account removal need an explicit production retention policy.
+- Database: bound Prisma operations, composite foreign keys, owner scoping,
+  serializable writes and query deadlines. Local helper uses known developer
+  credentials; production least-privilege/TLS/backups/restore await Phase 10.
+- Rate limits reset on restart and are per process; scale-out needs shared counters.
+  Local S3 emulator, parser worker (not an OS security sandbox), no antivirus,
+  external AI availability and uncalibrated coaching remain limits. Never expose
+  the local server or storage through a tunnel. Production guard stays enabled.
+
+Documentation gate: reviewed the master prompt, all nine docs, root/client/server
+READMEs and both env examples. Updated current status, walkthrough, API, architecture,
+learning, deployment risk notes, roadmap and checklist; master prompt preserved.
+Client env example needs no change. Server example documents operation ceilings.
+No new docs file or phase beyond 9. See WALKTHROUGH for the learning checkpoint.
+
+## Historical checkpoints
+
+## Gemini transient-failure recovery — 2026-10-22
+
+The user's latest voice request recorded AI_PROVIDER_503 (one provider attempt).
+Implemented one delayed retry for explicit 429/503 responses, within the existing
+45-second operation deadline. No automatic replay of timeouts, network failures,
+other HTTP errors, invalid output or storage errors. Backoff is abortable and checks
+cancellation before another provider call. This supersedes earlier 429-only policy.
+
+For transcription only, an explicit user retry can reclaim the same failed 503
+operation after a five-second cooldown, under the existing database lock, ownership,
+input hash, quota and concurrency checks. Maximum four provider calls per recording
+ID across retries, with at most two per invocation. Previously successful requests
+still cannot be replayed; no transcript/audio is stored. Prior failed recordings can
+use the recovery path without resetting the database or deleting user records.
+The client retains the clip and displays Retry transcription after a failure.
+
+Verification: 32 isolated database tests and five targeted voice UI tests passed;
+lint/build passed. Initial parallel DB run hit a pre-existing resume parser startup
+timeout; the runner now uses one worker and all tests passed. New tests cover 503
+recovery, cache reuse, cooldown, changed input rejection, attempt caps, and successful
+voice retry without retaining transcripts. Live synthetic verification against the
+configured model failed; a separate gemini-3.5-flash-lite synthetic transcription
+succeeded and recognized the expected database/index content. Local VOICE_MODEL now
+uses that verified model; question/report GEMINI_MODEL is unchanged. A failed 503
+voice operation may adopt a newly configured voice model under the same attempt cap.
+An older 2.5 Flash Lite probe returned 404 and was not configured. Synthetic audio
+and test ledger records were removed. Provider availability remains external and is
+not guaranteed by these changes. Phase 8 still awaits full human microphone acceptance.
+
+
+## Historical checkpoint — Phase 8 — 2026-10-15
+
+**Voice implementation and automated checks complete; user microphone acceptance pending.**
+Phase 7 and Phase 6 were pushed to GitHub main at 12e7ffa. Phase 8 is uncommitted
+and unpushed. Phase 9 has not started. This section supersedes the older checkpoint.
+
+- Optional consent-gated microphone capture in the interview room. AudioWorklet
+  produces 16 kHz mono PCM WAV, capped at 60 seconds / 1,920,044 bytes. Stop/discard,
+  elapsed timer, local audio review, device-error handling, page-focus/visibility
+  stop, unmount cleanup and late-permission cleanup implemented. Unsupported browsers
+  keep text input available. Optional on-device question playback is separate.
+- Authenticated POST voice endpoint checks interview/question ownership and active
+  state before buffering. Strict PCM header/actual-size validation enforces duration
+  server-side; bounded concurrent uploads and a deadline limit memory usage.
+- Gemini transcription uses the existing official SDK and configured model/key.
+  VOICE_MODE can independently be disabled/mock/live; omitted mode inherits AI_MODE.
+  Running configuration is live. The provider receives audio only, never resume/JD
+  or existing answers. No voice traits, personality or confidence are scored.
+- Editable transcript is explicitly confirmed and appended to the existing answer;
+  the same save/report rubric applies. No automatic submission or overwrite of typed
+  text. Voice drafts block question movement until confirmed/discarded.
+- Audio and unconfirmed transcripts are not persisted by the app. Shared AiOperation
+  ledger stores hashes/status/usage only for transcription, not the result. The same
+  recording ID cannot repeat a completed/ambiguous paid request; network retries
+  may receive an already-processed response requiring a new recording. Shared quota
+  is 30 AI operations/user/UTC day (voice, plans, follow-ups, reports), 1 running/user,
+  3 global; voice uploads additionally allow at most 2 concurrent local requests.
+- Verification: 34 client tests, 56 server tests, 29 isolated PostgreSQL tests passed
+  (119 total). Final lint/build and Git whitespace checks passed. The voice UI is
+  a separate lazy-loaded bundle. Coverage includes permission fallback, explicit confirmation, draft
+  preservation, late results, duration/size caps, late microphone grants, ownership,
+  invalid audio and duplicate-charge prevention. Initial parallel PDF startup timed
+  out and one client run suffered a worker interruption; isolated reruns passed.
+- Live provider check: Windows-generated synthetic speech about a database index was
+  transcribed correctly by gemini-3.1-flash-lite. This was a provider test, not a human
+  microphone/browser journey. The temporary audio was removed. HTTP ownership tests
+  use mocked transcription. User has agreed to test but has not yet reported results.
+- Existing local-only deployment block, S3 emulator dependency risks and pg query
+  deprecation remain. No new package dependencies or database migrations were added.
+
+Pending acceptance: user should record, stop, transcribe, correct, confirm, save,
+and reopen an answer, plus try permission denial and question playback. Browser
+voice availability varies; on-device playback voices may be absent. Text is always
+available. No claim of physical microphone or real browser visual verification.
+
+Documentation reviewed: README, API, architecture, learning, deployment, both app
+READMEs, roadmap, checklist, walkthrough and server environment example updated.
+Client environment example unchanged: no client-side key or new setting needed.
+
+## Historical Phase 7 checkpoint
+
+### Phase 7 — 2026-10-15
 
 **Phase 7 complete for local development; live personalization verified.**
 Phase 6 is committed locally as c1632a5. Phase 7 is recorded in the local

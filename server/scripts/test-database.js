@@ -22,7 +22,9 @@ try {
   base.pathname = '/' + name
   const url = base.toString()
   await run(require.resolve('prisma/build/index.js'), ['migrate', 'deploy'], { DATABASE_URL: url })
-  await run(require.resolve('vitest/package.json').replace('package.json', 'vitest.mjs'), ['run', 'test/persistence.test.js', 'test/authorization.test.js', 'test/ai-persistence.test.js', 'test/resumes-persistence.test.js'], { TEST_DATABASE_URL: url })
+  if (process.argv.includes('--e2e')) {
+    await run(require.resolve('@playwright/test/cli'), ['test', '--config=../playwright.config.js'], { TEST_DATABASE_URL: url })
+  } else await run(require.resolve('vitest/package.json').replace('package.json', 'vitest.mjs'), ['run', '--maxWorkers=1', 'test/persistence.test.js', 'test/authorization.test.js', 'test/ai-persistence.test.js', 'test/resumes-persistence.test.js', 'test/voice-persistence.test.js'], { TEST_DATABASE_URL: url })
 } finally {
   // Only the unique database created by this invocation can be removed.
   await admin.query('DROP DATABASE IF EXISTS "' + name + '" WITH (FORCE)')

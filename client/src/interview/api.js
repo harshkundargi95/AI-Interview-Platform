@@ -38,6 +38,7 @@ export function createInterviewApi(getToken) {
     return request(path, { ...options, token })
   }
   return {
+  transcribe: (id, questionId, requestId, audio) => authorizedRequest(`/voice/${id}/${encodeURIComponent(questionId)}/${requestId}`, { method: 'POST', raw: audio, timeout: 65000 }),
   resumes: () => authorizedRequest('/resumes'),
   uploadResume: file => authorizedRequest('/resumes?filename=' + encodeURIComponent(file.name), { method: 'POST', raw: file, timeout: 20000 }),
   removeResume: id => authorizedRequest('/resumes/' + id, { method: 'DELETE' }),

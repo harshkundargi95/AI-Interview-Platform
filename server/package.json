@@ -14,7 +14,8 @@
     "db:seed": "prisma db seed",
     "test:db": "node scripts/test-database.js",
     "eval:ai": "node scripts/evaluate-ai.js",
-    "storage:local": "node scripts/local-storage.js"
+    "storage:local": "node scripts/local-storage.js",
+    "test:e2e": "node scripts/test-database.js --e2e"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1151.0",

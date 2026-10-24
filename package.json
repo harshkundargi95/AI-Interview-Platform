@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "npm run dev --workspace client -- --host 127.0.0.1 --port 5173 --strictPort",
     "build": "npm run build --workspace client",
-    "lint": "npm run lint --workspaces --if-present && oxlint shared",
+    "lint": "npm run lint --workspaces --if-present && oxlint shared scripts e2e playwright.config.js",
     "preview": "npm run preview --workspace client -- --host 127.0.0.1 --port 4173 --strictPort",
     "test": "npm run test --workspaces --if-present",
     "dev:server": "npm run dev --workspace server",
@@ -21,6 +21,12 @@
     "db:migrate": "npm run db:migrate --workspace server",
     "db:seed": "npm run db:seed --workspace server",
     "test:db": "npm run test:db --workspace server",
-    "storage:local": "npm run storage:local --workspace server"
+    "storage:local": "npm run storage:local --workspace server",
+    "test:e2e": "npm run test:e2e --workspace server",
+    "check:secrets": "node scripts/check-secrets.cjs",
+    "monitor": "node scripts/monitor.cjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
   }
 }

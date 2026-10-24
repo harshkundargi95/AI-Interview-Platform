@@ -54,7 +54,9 @@ it('Gemini adapter sends untrusted content as data with bounded structured outpu
 })
 
 it('evaluation dataset covers strong, weak, irrelevant and manipulation probes across subjects', () => {
-  expect(evaluationCases).toHaveLength(16)
+  expect(evaluationCases).toHaveLength(40)
+  expect([...new Set(evaluationCases.map(c => c.role))].sort()).toEqual(['backend', 'frontend', 'fullstack', 'general'])
+  expect([...new Set(evaluationCases.map(c => c.subject))]).toEqual(expect.arrayContaining(['cn', 'oop', 'dsa', 'dbms', 'os']))
   for (const subject of new Set(evaluationCases.map(c => c.subject))) {
     expect(evaluationCases.filter(c => c.subject === subject).map(c => c.quality).sort()).toEqual(['irrelevant', 'manipulation', 'strong', 'weak'])
   }

@@ -2,7 +2,7 @@
 
 A phase-by-phase guide to understanding the project and explaining its code.
 
-**Status: Phases 0–5 completed, including 3.1. Phase 5 automated checks passed; live operation confirmed by the user on 2026-10-11. Phase 6 is verified in mock mode and with live backend checks; Phases 7–11 are planned.**
+**Current status: Phases 0–9 complete for local development (including 3.1). User confirmed Phases 8 and 9 working on 2026-10-24 after the manual checklists. Phases 10–11 not started. Earlier milestone chapters below are historical; production limitations remain.**
 Read [Phase 5](#phase-5--authentication-authorization-and-google-sign-in) for current account behavior and [Phase 4](#phase-4--postgresql-persistence) for storage. Earlier memory/expiry descriptions are historical.
 The detailed chapters below preserve the Phase 3 milestone. For the current expanded implementation, read [Phase 3.1 step by step](#phase-31--scope-configuration-and-fixed-bank-planning) first. Frontend-only, positional-ID and five-question descriptions below are historical. The current roadmap and brief supersede the old future-phase summaries, particularly dynamic question generation and follow-ups in Phase 6.
 
@@ -1422,3 +1422,155 @@ light/dark tokens, visible keyboard focus, responsive cards and reduced-motion r
 Learning exercise: change the count in either place and explain why both selectors
 update; inspect a start request with personalization off and confirm that it has
 no personalization property.
+
+
+## Phase 8: optional turn-based voice answers
+
+Voice is another way to prepare answer text. It does not create a separate scoring
+system or a continuous conversation. The question stays visible throughout.
+
+1. `VoiceAnswer.jsx` loads on the interview page as a separate optional bundle. It
+   reads the voice mode, explains consent/retention, and asks permission only after
+   the user checks consent and clicks Start recording. Text entry remains available.
+2. `recording.js` opens a microphone stream and a 16 kHz AudioContext. The public
+   `voice-capture.js` AudioWorklet captures mono samples off the UI thread. Both the
+   sample budget and wall-clock timer cap capture at 60 seconds. This explicit PCM
+   format makes duration validation possible without a large media-decoder dependency.
+   Browsers without these APIs or the required sample rate fall back to text.
+3. Stop closes microphone tracks and the audio context. The user reviews the local
+   WAV and explicitly chooses Transcribe. Losing focus/visibility stops capture;
+   unmount/discard cancels resources, including a permission grant arriving late.
+4. The authenticated API sends bounded bytes to `/voice/:interviewId/:questionId/:requestId`.
+   Express checks owner/active question first, then the WAV layout, rate, byte size,
+   and duration. A client cannot bypass duration using a fabricated duration field.
+5. `voice/provider.js` sends only inline audio to Gemini. The instruction requests
+   transcription only, treats spoken instructions as data, and disallows evaluation.
+   An empty/oversized/malformed transcript fails safely. Mock mode returns an explicitly
+   labeled example; disabled mode leaves text interviews functional.
+6. `createAiOperations` is reused with a transcript validator and `retainResult:false`.
+   Quota/idempotency are durable; audio and transcript content are not saved in that
+   ledger. Successful retry cannot recover a lost transcript: this privacy tradeoff
+   avoids storing it, and the UI tells the user to record again. SDK automatic retries
+   are disabled; only the existing explicit 429 retry is allowed. Ambiguous failures
+   never automatically replay a paid operation.
+7. The returned transcript is editable. Confirm appends it to the current answer,
+   checking the combined 3,000-character limit. Only then does normal Save progress
+   or Complete interview save it. Reports use the same text rubric. No acoustic
+   characteristics reach the scoring engine.
+
+On-device `speechSynthesis` voices optionally read the question; playback is user
+initiated and stopped on page exit/hide or recording start. No available local voice
+means playback is disabled. It is independent of transcription.
+
+Retention: raw recording lives in browser/server memory only, not PostgreSQL/S3.
+Unconfirmed transcript lives in browser state only; discard/page exit clears it.
+An in-flight external request may finish after local cancellation, but a generation
+counter prevents its result changing a different question/account. Provider-side
+handling follows Google API terms; this app does not promise deletion at Google.
+Confirmed text has the same retention as any answer and is deleted with its interview.
+
+Verification: 34 client + 56 server + 29 DB tests; live Gemini recognized synthetic
+speech. Human microphone acceptance was subsequently reported by the user on 2026-10-24. Learn by following one recording ID
+from the UI to the usage ledger: explain why the transcript is absent there and why
+confirming text is separate from saving it. Suggested commit once accepted:
+`feat: add optional turn-based voice answers and editable transcripts`.
+
+
+### Gemini 503 recovery update (2026-10-22)
+
+Explicit provider 429/503 responses now receive one delayed, jittered retry (maximum
+two calls per invocation, under the 45-second deadline). Timeouts and uncertain
+network failures do not automatically replay. For voice only, a failed 503 may be
+retried with the same recording/request ID after five seconds, capped at four calls
+in total. Input hash, model, owner and concurrency checks still apply; successful
+transcripts are not retained or replayed. This supersedes earlier statements that
+only 429 can be retried or every failed recording must be discarded. Provider errors
+can still persist; no retry policy guarantees availability or provider billing.
+
+Reference: https://ai.google.dev/gemini-api/docs/troubleshooting
+
+## Phase 9 — Security and reliability, step by step
+
+This phase checks whether the earlier features behave safely under failure, abuse
+and retries. It changes infrastructure and tests more than the visible interface.
+
+1. **Trace a request without recording personal content.** `observability.js`
+   generates a UUID when a request enters Express. The response returns it in
+   X-Request-Id and error.requestId. A completion/closed-connection listener logs
+   only time, method, route template, status, duration and a safe error code.
+   It never serializes the request or raw exception. A failed request can now be
+   matched to a log without exposing a resume, answer, URL signature or bearer token.
+2. **Limit work before it becomes expensive.** `rateLimit.js` bounds ordinary
+   traffic by direct IP (240/min) and by authenticated account per route family
+   (120/min). Failed requests count; forwarding headers do not change the IP.
+   Entries expire and the map is capped at 10,000 keys. A 429 response includes a
+   Retry-After delay. These local counters reset on restart, unlike AI quotas.
+3. **Separate request limits from AI spending controls.** `ai/operations.js` uses
+   a database advisory lock to reserve work under the existing per-user quota and
+   new shared 500-operation/day ceiling. Failed and retried rows count too, including
+   old rows updated today. Request idempotency prevents duplicate paid work, and
+   only explicit 429/503 provider errors receive one delayed retry per invocation.
+   Voice 503 recovery remains limited to four total calls per recording. A timeout
+   does not prove a provider did not charge. Operation limits are not dollar budgets.
+4. **Distinguish alive from ready.** `/live` means Express can respond. `/ready`
+   means PostgreSQL and configured resume storage responded within two seconds and
+   the server is not draining. A storage failure returns generic 503 without leaking
+   credentials. It does not probe Clerk or Gemini or promise external availability.
+   Query deadlines and HTTP deadlines bound waiting; shutdown stops cleanup and
+   allows in-flight work up to 70 seconds before closing remaining connections.
+5. **Keep the trust boundary on the server.** Clerk still verifies signatures,
+   lifetime, issuer/session behavior and authorized parties. Database ownership
+   comes from that identity, never a supplied ownerId. Cookies alone cannot authorize
+   a mutation and fetch omits credentials; the CORS allowlist is an additional guard,
+   not a replacement for authentication. API response CSP denies scripts/frames;
+   the separate frontend hosting policy is a Phase 10 concern.
+6. **Review files and retention.** Upload type/size, ZIP expansion, PDF page/text,
+   parser time/memory, active upload limits and expiring download checks remain.
+   The 30-second upload watchdog now destroys incomplete slow request bodies.
+   File deletion first revokes access; storage failures leave retry metadata. Copied
+   resume context belongs to the interview until that interview is deleted. Voice
+   blobs/unconfirmed transcripts stay transient. Worker limits are not full OS isolation.
+7. **Exercise the whole system in Chromium.** `e2e/main.jsx` is a separate test
+   entry around the real App; `e2e/server.mjs` signs short-lived test JWTs using an
+   ephemeral key. The real backend verifies them and persists into an isolated DB.
+   `journey.spec.js` clicks setup, completes three answers, generates a mock report,
+   reloads/reopens history, deletes the record and signs out. Injected HTML-looking
+   feedback stays text. It does not use the hosted Google/Clerk login UI; normal
+   production/client entry points never import this test harness.
+8. **Make verification repeatable.** `test-database.js --e2e` creates a uniquely
+   named temporary database, applies all migrations, runs Playwright and drops only
+   that database in finally. `ci.yml` runs the local checks on GitHub with PostgreSQL,
+   test identities and mock AI, no personal service keys. No workflow has run remotely
+   because no commit/push was requested. Failure traces contain synthetic test data;
+   artifact retention is three days.
+9. **Monitor safely.** `config/monitoring.json` sets a five-minute window, minimum
+   five requests and 20% server-error threshold. `scripts/monitor.cjs` reads JSON
+   from stdin, emits safe alerts and exits nonzero if alerted. Internal/startup/cleanup
+   error events also alert. This is a local check, not a hosted alerting/on-call service.
+10. **Evaluate AI honestly.** The dataset now has forty synthetic probes across ten
+    subjects, plus four track-specific generation plans. Live Gemini returned valid,
+    relevant questions and scored strong answers above weak ones; irrelevant and
+    instruction-manipulation answers stayed low. Broad recall questions and limited
+    scenario depth remain weaknesses. These hand-written probes do not establish
+    accuracy, fairness, hiring validity, or robustness to every prompt injection.
+
+Important files: server/src/middleware/{observability,rateLimit,errors,authentication}.js;
+server/src/{app,index,database}.js; server/src/ai/operations.js;
+server/test/security.test.js; server/test/ai-evaluation.js;
+server/scripts/{test-database,evaluate-ai}.js; e2e/; playwright.config.js;
+scripts/{check-secrets,monitor}.cjs; config/monitoring.json; .github/workflows/ci.yml.
+
+Run checks from README. Manually sign in with Google, configure three questions,
+answer/complete, generate feedback, visit History, reopen and delete that test record.
+For readiness, start database/storage/API and open `/api/v1/ready`; with storage
+stopped it should return 503 while `/api/v1/live` stays 200. Restart storage afterward.
+Do not interrupt an actual upload to run this exercise. Preserve personal interviews.
+
+Learning checkpoint: explain authentication versus authorization, CORS versus CSRF,
+rate limits versus durable quotas, liveness versus readiness, and why mock browser
+verification and live provider evaluation answer different questions.
+Practice task: change minimumRequests in monitoring.json to 3, pipe three synthetic
+503 log events to `npm run monitor`, observe the alert, then restore 5.
+Suggested commit: `feat: add Phase 9 security and reliability verification`.
+No commit/push was made. Next is Phase 10 deployment preparation after review, with
+real Clerk and Phase 8 microphone checks subsequently accepted by user report on 2026-10-24. Remote CI and production verification remain separate gates.

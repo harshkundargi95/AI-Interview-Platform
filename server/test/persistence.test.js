@@ -87,7 +87,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('real PostgreSQL persistence', (
         const timer = setTimeout(() => { child.kill(); reject(new Error('API startup timed out')) }, 15000)
         child.once('error', error => { clearTimeout(timer); reject(error) })
         child.once('exit', code => { clearTimeout(timer); reject(new Error('API exited: ' + code)) })
-        child.stdout.on('data', text => { if (text.toString().includes('Local API:')) { clearTimeout(timer); resolve() } })
+        child.stdout.on('data', text => { if (text.toString().includes('"event":"server_started"')) { clearTimeout(timer); resolve() } })
       })
       return child
     }

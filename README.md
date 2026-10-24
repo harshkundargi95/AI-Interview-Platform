@@ -1,7 +1,7 @@
 # Interview Practice
 
 A full-stack learning project for software developer internships and junior roles.
-**Current milestone: Phase 7 complete for local development; live personalization verified. Phase 6 committed as c1632a5.**
+**Current milestone: Phases 8 and 9 complete for local development. User confirmed both working on 2026-10-24 after receiving the manual checklists. Phase 10 is next; no commit or push was made for this confirmation.**
 
 Previous milestone: Phase 6 complete with live backend verification (2026-10-13). Phase 5 is pushed as ceed058.
 
@@ -65,6 +65,8 @@ References: [React setup](https://clerk.com/docs/react/getting-started/quickstar
 [Express verification](https://clerk.com/docs/reference/express/clerk-middleware),
 [Google configuration](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google).
 
+Run the current app in **four terminals**, all from the project root. Keep each service running; do not start duplicate instances.
+
 Terminal 1 — keep the database running:
 
 ```powershell
@@ -85,13 +87,23 @@ npm run dev:server
 Migrations preserve existing records. Optional db:seed creates a legacy example,
 not a record belonging to a signed-in account. It is unnecessary for normal use.
 
-Terminal 3:
+Terminal 3 — frontend:
 
 ```powershell
 npm run dev
 ```
 
+Terminal 4 — resume storage (added in Phase 7):
+
+```powershell
+npm run storage:local
+```
+
 Open http://127.0.0.1:5173. API health is http://127.0.0.1:3001/api/v1/health.
+Full readiness is http://127.0.0.1:3001/api/v1/ready and requires both database
+and resume storage. Health 200 with readiness 503 can mean storage is stopped.
+If the browser reports a connection failure, inspect Terminal 2 for startup/crash
+errors; retry without refreshing to retain unsaved drafts.
 Keep this version local until deployment is configured. You can alternatively use an existing
 local PostgreSQL database by setting DATABASE_URL in server/.env.
 
@@ -244,3 +256,35 @@ Download links require your signed-in account and expire after 60 seconds.
 The S3 emulator uses port 4569 and server/.data/objects, is loopback-only and trusts
 this local machine. It is not suitable for public hosting. See docs/PROGRESS.md for
 101-test aggregate coverage, actual S3 checks, dependency risks and successful live personalization checks.
+
+
+## Phase 8: optional voice answers
+
+In the interview room, choose Answer by voice, consent, record (up to 60 seconds),
+stop and review, then Transcribe recording. Correct the transcript and Confirm to
+append it to your answer. Use Save progress as usual. Typed answers always remain
+available. Read question aloud uses an available on-device browser voice.
+
+Voice reuses Gemini credentials and AI_MODE; optionally set VOICE_MODE to disabled,
+mock or live in server/.env, and VOICE_MODEL to override GEMINI_MODEL. No migration
+or new dependency is required. Microphone access needs localhost/HTTPS and AudioWorklet.
+Raw audio is not saved to the database/storage. Confirmed text follows answer retention.
+Phase 8 code and automated/synthetic live checks are implemented; the user confirmed
+Phase 8 working on 2026-10-24 (user-reported acceptance). See docs/PROGRESS.md for evidence and limits.
+
+## Phase 9 verification
+
+Run `npm run lint`, `npm test`, `npm run test:db`, `npm run build`, and
+`npm run check:secrets`. Database tests require `npm run db:local` in another terminal.
+For Chromium, first `npx playwright install chromium`, then `npm run test:e2e`.
+This creates/drops a unique test database and uses ports 4173/3101 (must be free).
+It does not sign in to your real Clerk account or call Gemini.
+
+`GET /api/v1/live` checks process liveness; `GET /api/v1/ready` checks database and
+resume storage. Use request IDs from error responses to match safe JSON API logs.
+`npm run start --workspace server | npm run monitor` applies the local alert rules
+in config/monitoring.json; it does not send anything to an external service.
+
+CI configuration is in .github/workflows/ci.yml and has not run remotely yet.
+Runtime dependency audit is clean; four known dev-only S3 emulator findings remain.
+See docs/PROGRESS.md for exact verification and docs/DEPLOYMENT.md for release gates.

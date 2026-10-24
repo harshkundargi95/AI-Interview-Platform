@@ -1,0 +1,12 @@
+{
+  "windowSeconds": 300,
+  "minimumRequests": 5,
+  "serverErrorRatio": 0.2,
+  "alertEvents": [
+    "api_error",
+    "startup_error",
+    "cleanup_error"
+  ],
+  "readinessPath": "/api/v1/ready",
+  "livenessPath": "/api/v1/live"
+}

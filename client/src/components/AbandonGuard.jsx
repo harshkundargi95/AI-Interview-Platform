@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useBlocker } from 'react-router'
 import { Button } from './ui.jsx'
 
-export default function AbandonGuard({ enabled, onDiscard }) {
+export default function AbandonGuard({ enabled, onDiscard, onBlocked }) {
   const dialogRef = useRef(null)
   const blocker = useBlocker(({ currentLocation, nextLocation }) =>
     enabled && currentLocation.pathname !== nextLocation.pathname,
@@ -19,9 +19,9 @@ export default function AbandonGuard({ enabled, onDiscard }) {
   }, [enabled])
 
   useEffect(() => {
-    if (blocker.state === 'blocked') dialogRef.current?.showModal()
+    if (blocker.state === 'blocked') { onBlocked?.(); dialogRef.current?.showModal() }
     else dialogRef.current?.close()
-  }, [blocker.state])
+  }, [blocker.state, onBlocked])
 
   return (
     <dialog ref={dialogRef} className="abandon-dialog" aria-labelledby="leave-title" aria-describedby="leave-description" onCancel={(event) => { event.preventDefault(); blocker.reset?.() }}>

@@ -1,4 +1,4 @@
-# Architecture — Phase 6
+# Architecture — current through Phase 9
 
 ## Current data flow
 
@@ -6,8 +6,8 @@ React → Clerk session token → Express Clerk verification → database User m
 → Zod controller → owner-scoped persistent interview
 service → Prisma → PostgreSQL → JSON snapshot → React reducer.
 
-Three local processes run: Vite (5173), Express (3001), PostgreSQL (55432 with the
-optional local helper). Production mode and remote database hosts are rejected
+Four local processes run: Vite (5173), Express (3001), PostgreSQL (55432 with the
+optional local helper), and local S3 storage (4569). Production mode and remote database hosts are rejected
 until deployment is configured. Clerk keys and a Clerk application are required;
 there is no runtime development identity. Mock AI needs no key; live mode requires server-only Gemini configuration.
 
@@ -125,3 +125,27 @@ Expired records deny access before cleanup. Deletion revokes access before stora
 removal; pending records enable eventual cleanup when local storage is available.
 Signed application download paths also require the owner's bearer token; they
 never expose a public object URL. The loopback emulator is not a secure cloud bucket.
+
+
+Phase 8 adds a lazy-loaded VoiceAnswer UI, browser AudioWorklet PCM capture, and an
+authenticated Express voice route. Only inline audio reaches the Gemini transcription
+provider. The shared durable AI ledger handles quota/duplicate protection with result
+retention disabled for voice. No audio storage or new database table is needed.
+Explicit transcript confirmation updates the same answer reducer; existing save,
+report, ownership and deletion paths remain authoritative. Local browser speech
+synthesis provides optional playback without a new speech-generation service.
+
+## Phase 9 verification and operations
+
+Express first attaches request tracing and response/CORS policy, then applies the
+IP rate limiter. Protected routes verify bearer tokens and derive ownership before
+account throttling and domain work. Durable AI quotas remain shared in PostgreSQL;
+ordinary HTTP limits remain in-process. JSON observability events expose no content.
+Readiness checks DB and configured S3 storage; liveness is dependency-independent.
+Local monitoring consumes safe log events; no external telemetry is enabled.
+
+Playwright uses a separate test-only frontend entry and API on 4173/3101 plus a
+unique temporary database. Normal client/src/main.jsx entry paths do not import it.
+The fixture simulates sign-in with ephemeral signed tokens verified by real Clerk
+middleware, while AI is explicitly mocked. Live synthetic evaluation is a separate,
+explicit command. CI runs no paid/provider calls and no real OAuth credentials.

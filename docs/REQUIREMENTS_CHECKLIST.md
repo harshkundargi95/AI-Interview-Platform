@@ -275,57 +275,83 @@ in PROGRESS.md and DEPLOYMENT.md; completion is local-development scoped.
 ## Phase 8 — Turn-based voice answers
 
 Implement:
-- [ ] Microphone permissions.
-- [ ] Visible recording and stop controls.
-- [ ] Recording duration and size limits.
-- [ ] Server-side transcription through a documented provider integration.
-- [ ] Editable transcript before submission.
-- [ ] Optional question playback.
-- [ ] Text fallback.
-- [ ] Recording consent and retention behavior.
+- [x] Microphone permissions.
+- [x] Visible recording and stop controls.
+- [x] Recording duration and size limits.
+- [x] Server-side transcription through a documented provider integration.
+- [x] Editable transcript before submission.
+- [x] Optional question playback.
+- [x] Text fallback.
+- [x] Recording consent and retention behavior.
 
 Use the same answer-analysis engine for typed answers and confirmed transcripts.
 
 Acceptance:
-- [ ] Permission denial and unsupported browsers are handled.
-- [ ] Recording cannot continue invisibly.
-- [ ] Users can correct transcription mistakes.
-- [ ] Text interviews work without voice services.
-- [ ] Actual live voice checks are distinguished from mocks.
+- [x] Permission denial and unsupported browsers are handled.
+- [x] Recording cannot continue invisibly.
+- [x] Users can correct transcription mistakes.
+- [x] Text interviews work without voice services.
+- [x] Actual live voice checks are distinguished from mocks.
+
+Phase 8 evidence (2026-10-15): 119 automated tests passed, including real isolated
+PostgreSQL authorization/idempotency checks and mocked browser recording lifecycle.
+Synthetic speech transcribed successfully by live Gemini; actual microphone/browser
+acceptance was pending at that checkpoint; user confirmed Phase 8 working on
+2026-10-24 after the manual checklist (user-reported, not assistant-observed). Code: client VoiceAnswer/voice recording/worklet;
+server voice routes/provider and shared AI ledger. See PROGRESS and WALKTHROUGH.
+
+- [x] User confirms the real browser microphone -> transcript -> edited answer ->
+  save/reopen journey, permission denial, and optional question playback.
 
 ## Phase 9 — Security and reliability review
 
 Security must be implemented throughout earlier phases; this phase consolidates verification.
 
 Review:
-- [ ] Authentication and ownership.
-- [ ] Input limits and validation.
-- [ ] Rate limits and AI spending controls.
-- [ ] CORS and security headers.
-- [ ] Safe rendering of AI text.
-- [ ] CSRF where cookie-authenticated mutations are used.
-- [ ] File privacy and parser restrictions.
-- [ ] Secrets and sensitive logs.
-- [ ] Dependency vulnerabilities.
-- [ ] Database security.
-- [ ] Deletion and retention.
-- [ ] Concurrent requests, duplicate submissions, and retries.
+- [x] Authentication and ownership.
+- [x] Input limits and validation.
+- [x] Rate limits and AI spending controls.
+- [x] CORS and security headers.
+- [x] Safe rendering of AI text.
+- [x] CSRF where cookie-authenticated mutations are used.
+- [x] File privacy and parser restrictions.
+- [x] Secrets and sensitive logs.
+- [x] Dependency vulnerabilities.
+- [x] Database security.
+- [x] Deletion and retention.
+- [x] Concurrent requests, duplicate submissions, and retries.
 
 Add:
-- [ ] Structured logs and request IDs.
-- [ ] Health and readiness checks.
-- [ ] Error monitoring configuration.
-- [ ] CI for relevant tests and builds.
-- [ ] End-to-end tests for the main journey.
+- [x] Structured logs and request IDs.
+- [x] Health and readiness checks.
+- [x] Error monitoring configuration.
+- [x] CI for relevant tests and builds.
+- [x] End-to-end tests for the main journey.
 
 Evaluate question relevance and feedback across all tracks and core subjects.
 
 Acceptance:
-- [ ] Sign in → configure → interview → feedback → history → delete passes.
-- [ ] Cross-user access is blocked.
-- [ ] AI failure/retry behavior is verified.
-- [ ] Secrets are absent from frontend bundles and committed files.
-- [ ] Remaining risks are documented accurately.
+- [x] Sign in → configure → interview → feedback → history → delete passes.
+- [x] Cross-user access is blocked.
+- [x] AI failure/retry behavior is verified.
+- [x] Secrets are absent from frontend bundles and committed files.
+- [x] Remaining risks are documented accurately.
+
+Phase 9 evidence (2026-10-23): security middleware, structured logs/request IDs,
+readiness, monitoring rules, isolated browser fixture and GitHub CI configuration
+implemented. 34 client + 60 server + 33 DB + 1 Chromium tests passed; lint/build,
+runtime audit and source/HEAD/bundle scan passed. Live synthetic Gemini evaluation:
+four plans and forty feedback probes across all tracks/core subjects passed, with
+qualitative limitations in PROGRESS.md. Existing ownership/CSRF/upload/retry controls
+were inspected and tested. Four emulator-only audit findings remain documented.
+
+The checked main journey is browser automation with an ephemeral signed test identity,
+real backend/DB and mock AI; it does not claim fresh real Google OAuth verification.
+CI is configured and corresponding commands passed locally; no remote workflow run.
+- [x] User confirms the complete journey with real Clerk sign-in after Phase 9.
+  User reported both phases working on 2026-10-24 after the checklists; individual
+  steps were not separately observed by the assistant.
+- [ ] Remote CI run (requires an explicitly authorized commit/push).
 
 ## Phase 10 — Deployment
 

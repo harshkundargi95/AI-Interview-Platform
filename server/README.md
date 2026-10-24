@@ -31,3 +31,17 @@ Neither ordinary tests nor database tests call Gemini. Live evaluation is not pa
 of automatic tests and must be authorized; no key or full provider error is logged.
 
 Phase 7 adds uploads/ routes, bounded parser workers and Resume metadata. Start npm run storage:local (loopback emulator on 4569), then apply db:generate/db:migrate. Files expire after 24h; cleanup runs at startup/every minute. This emulator is not production storage; see docs/DEPLOYMENT.md and PROGRESS.md for advisories and live verification evidence.
+
+
+Phase 8: authenticated `/api/v1/voice` accepts bounded canonical PCM WAV recordings.
+Voice inherits AI_MODE unless VOICE_MODE is set to disabled/mock/live; VOICE_MODEL
+optionally overrides GEMINI_MODEL. Existing server GEMINI_API_KEY is reused. No
+migration is needed. Audio and transcription results are not stored; shared AI quota
+and duplicate-request metadata are stored. See docs/API.md for exact limits.
+
+Phase 9 adds safe JSON request logs/request IDs, ordinary rate limits, a shared
+AI operation ceiling and `/api/v1/live` / `/api/v1/ready`. Readiness needs PostgreSQL
+and local resume storage. Configure optional AI_DAILY_LIMIT / AI_GLOBAL_DAILY_LIMIT
+in server/.env; defaults 30/500. No new secrets or migration required.
+Root `npm run test:e2e` uses an isolated test DB; `npm run monitor` consumes logs.
+Do not expose the test harness, local emulator or development database publicly.

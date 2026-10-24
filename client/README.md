@@ -23,3 +23,16 @@ separate action after durable completion. AI failures retain answers; no autosav
 Never put GEMINI_API_KEY in VITE_*; all provider requests happen on the server.
 
 Phase 7 Setup includes reviewed JD/skills/resume text and authenticated upload/download/delete. Uploaded text remains editable; failures preserve drafts. See the setup disclosure for provider sharing and separate file/interview retention.
+
+
+Phase 8: Interview has optional voice consent, bounded microphone capture, local
+recording review, editable transcript confirmation and local question playback.
+Typed answers remain available. Microphone testing requires localhost/HTTPS and a
+browser supporting AudioWorklet with 16 kHz AudioContext. No new client keys needed.
+
+Phase 9 uses Playwright through the root `npm run test:e2e` command. Its separate
+entry under e2e/ wraps the real App in a synthetic account context; the normal
+AuthProvider and build are unchanged. The fixture tests safe AI text rendering and
+the complete persisted workflow, but does not exercise hosted Clerk/Google login.
+No frontend secrets or new VITE_ variables were added. Request IDs are available
+in API response headers/error envelopes for troubleshooting.

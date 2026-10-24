@@ -19,7 +19,7 @@ export function resumeRoutes(db, storage) {
     if (active.has(req.ownerId) || active.size >= 2) return next(new ApiError(429, 'UPLOAD_BUSY', 'An upload is already processing. Wait, then retry.'))
     active.add(req.ownerId)
     // Do not free the parser slot on disconnect until bounded processing finishes.
-    const timer = setTimeout(() => active.delete(req.ownerId), 30000)
+    const timer = setTimeout(() => { active.delete(req.ownerId); if (!req.complete) req.destroy() }, 30000)
     timer.unref()
     res.once('finish', () => { clearTimeout(timer); active.delete(req.ownerId) })
     next()

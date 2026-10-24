@@ -268,3 +268,18 @@ progress::-moz-progress-bar { background: var(--accent); }
 .context-card select { width: 100%; padding: 13px; border: 1px solid var(--border); border-radius: 12px; background: var(--page); color: var(--text); font: inherit; }
 @media (hover: hover) { .practice-type:hover { border-color: var(--accent); } }
 @media (max-width: 680px) { .practice-types { grid-template-columns: 1fr; } }
+
+/* Turn-based voice uses the same theme tokens as text practice. */
+.voice-panel { padding: 20px; border: 1px solid var(--badge-border); border-radius: 18px; background: linear-gradient(135deg, var(--badge-bg), var(--surface)); margin-bottom: 24px; }
+.voice-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.voice-heading h3 { margin: 10px 0 0; }
+.voice-panel .actions { margin: 10px 0; }
+.voice-consent { display: flex; align-items: flex-start; gap: 10px; margin: 18px 0; font-size: .85rem; }
+.voice-consent input { accent-color: var(--accent); margin-top: 4px; }
+.voice-recording { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--accent); border-radius: 12px; }
+.voice-dot { width: 12px; height: 12px; background: var(--accent); border-radius: 50%; }
+.voice-panel audio { display: block; width: 100%; margin: 16px 0; }
+.voice-review label { display: block; margin: 16px 0 8px; font-weight: 650; }
+.voice-review textarea { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px; color: var(--text); background: var(--page); font: inherit; resize: vertical; }
+.voice-review textarea:focus-visible, .voice-consent input:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+@media (max-width: 600px) { .voice-panel { padding: 14px; } .voice-heading > .button { width: 100%; } }

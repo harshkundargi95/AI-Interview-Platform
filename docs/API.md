@@ -1,4 +1,4 @@
-# Local API — Phase 6
+# Local API — current through Phase 9
 
 Base URL: http://127.0.0.1:3001/api/v1. Clerk authentication is required for all
 /interviews routes. Send Authorization: Bearer <Clerk session token>. Health, /ai-config and
@@ -184,3 +184,53 @@ reviews and edits text; raw files and storage keys are never sent to Gemini.
 Internal AI ledger diagnostics distinguish AI_PROVIDER_<HTTP status>, AI_TIMEOUT,
 AI_INVALID_OUTPUT, AI_STORAGE_ERROR and AI_PROVIDER_ERROR. Public failures retain
 AI_UNAVAILABLE; no provider messages or private text are returned in diagnostics.
+
+
+## Phase 8 voice
+
+`GET /ai-config` adds `voiceMode`: disabled, mock or live.
+`POST /voice/:interviewId/:questionId/:requestId` requires Clerk Bearer authentication,
+an owned active interview/question, UUID interview/request IDs and octet-stream WAV
+bytes. Supported input is canonical 44-byte-header, 16 kHz, mono PCM16 WAV, 1–60 seconds,
+maximum 1,920,044 bytes. Other layouts/formats are rejected, not transcoded.
+Response data: `{ transcript: "editable text", mode: "live" }` (or mock). Max 3,000
+characters; no answer is saved by this endpoint. Save through the existing answer API.
+
+401 missing auth, 404 foreign/missing/inactive question, 400 invalid audio/IDs, 413
+oversize, 415 content type, 429 capacity/quota, 503 provider failure/disabled voice.
+409 AI_RESULT_NOT_RETAINED means an already-transcribed recording cannot be replayed;
+use the local text or record again. Keep the same request ID for a transport retry.
+No audio/transcript result is persisted in the AI ledger; usage metadata is retained.
+
+
+### Gemini 503 recovery update (2026-10-22)
+
+Explicit provider 429/503 responses now receive one delayed, jittered retry (maximum
+two calls per invocation, under the 45-second deadline). Timeouts and uncertain
+network failures do not automatically replay. For voice only, a failed 503 may be
+retried with the same recording/request ID after five seconds, capped at four calls
+in total. Input hash, model, owner and concurrency checks still apply; successful
+transcripts are not retained or replayed. This supersedes earlier statements that
+only 429 can be retried or every failed recording must be discarded. Provider errors
+can still persist; no retry policy guarantees availability or provider billing.
+
+Reference: https://ai.google.dev/gemini-api/docs/troubleshooting
+
+## Phase 9 operational contract
+
+- GET `/live`: public 200 liveness. GET `/ready`: public 200 when local DB and
+  configured storage are ready, 503 NOT_READY after dependency failure, draining
+  or a two-second response deadline. Neither promises Gemini/Clerk availability.
+- All responses carry a server-generated X-Request-Id. Error envelopes now also
+  contain requestId. CORS exposes X-Request-Id and Retry-After to allowed origins.
+- RATE_LIMIT (429): 240 requests/min/direct IP; protected route families additionally
+  120/min/verified account. Retry-After contains seconds. OPTIONS/probes exempt.
+  Counters are process-local and reset on restart. Proxy headers are untrusted.
+- API headers: no-store, nosniff, DENY frames, no-referrer, deny-all CSP and camera/
+  microphone/geolocation disabled on API responses (not on the frontend document).
+- AI_DAILY_LIMIT defaults 30; AI_GLOBAL_DAILY_LIMIT defaults 500. Both include
+  failed/cached metadata rows created or updated today (UTC); shared across AI and
+  voice. All API processes must use identical settings. These are operation ceilings,
+  not token/currency budgets. Existing running limits and bounded retries still apply.
+- Logs contain only event/time/requestId/method/route template/status/duration/code.
+  Unknown paths are logged as unmatched; no raw path, query, identity or content.

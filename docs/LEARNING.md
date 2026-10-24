@@ -2,7 +2,7 @@
 
 These sections describe successive historical milestones. Earlier “next phase”
 prompts and limitations apply to that checkpoint; the current application is at
-Phase 6 verified in mock mode and with live Gemini at backend layers. Use PROJECT_WALKTHROUGH.md for the current code explanation and
+Phases 8 and 9 accepted for local development by user report on 2026-10-24; production verification remains separate. Use PROJECT_WALKTHROUGH.md for the current code explanation and
 REQUIREMENTS_CHECKLIST.md for completion tracking. Update these learning notes
 after each completed phase.
 
@@ -192,3 +192,25 @@ cannot delete previously copied interview text automatically, and why a mock pla
 cannot prove personalization quality. Exercise: use two accounts to attempt the
 same download, edit the extracted text, and compare two job descriptions when live
 Gemini is available. Keyword skill suggestions need review; they are not AI extraction.
+
+
+Phase 8 checkpoint: trace microphone permission -> AudioWorklet samples -> PCM WAV ->
+authenticated request -> transcript review -> confirmed answer -> normal save/report.
+Explain why hiding a control does not stop microphone tracks, why both sample and
+wall-clock limits are necessary, and why request IDs prevent duplicate provider calls.
+Practice denying microphone permission and confirming an edited transcript; compare
+its saved answer with a typed one. Explain the privacy/retry tradeoff of not caching
+transcript results and the distinction between speech recognition errors and scoring.
+
+## Phase 9 checkpoint
+
+A passing happy path is insufficient: test unauthorized users, duplicate submissions,
+provider timeouts, storage failures and malicious-looking text. Request IDs connect
+failures to logs without logging sensitive content. A health probe can be alive while
+its database/storage is unavailable; readiness distinguishes those states.
+Rate limits stop request bursts, while database quotas survive restarts and constrain
+AI operations. Neither guarantees an exact provider bill. A secure server still needs
+separate production credentials, TLS, backups, storage and operational monitoring.
+
+Exercise: run the synthetic monitoring exercise in PROJECT_WALKTHROUGH.md and explain
+why a test-identity browser journey cannot prove Google OAuth works in a real browser.

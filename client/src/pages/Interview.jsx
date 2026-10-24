@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router'
 import { Button, Card, EmptyState, PageHeading, TextAreaField } from '../components/ui.jsx'
 import SessionSummary from '../components/SessionSummary.jsx'
@@ -7,8 +7,13 @@ import { useInterview } from '../interview/useInterview.js'
 import { ANSWER_LIMIT, answeredCount, validateAnswer } from '../interview/session.js'
 import { difficultyLabels, typeLabels } from '../interview/questions.js'
 
+const VoiceAnswer = lazy(() => import('../components/VoiceAnswer.jsx'))
+
 export default function Interview() {
   const { session, dispatch, completeInterview, discardInterview, saveInterview, requestFollowup, busy, requestError } = useInterview()
+  const voiceStop = useRef(null)
+  const stopVoice = useCallback(() => voiceStop.current?.(), [])
+  const [voicePending, setVoicePending] = useState(false)
   const [error, setError] = useState('')
   const questionRef = useRef(null)
   const previousIndex = useRef(session?.index)
@@ -39,7 +44,7 @@ export default function Interview() {
 
   function advance(event) {
     event.preventDefault()
-    if (busy) return
+    if (busy || voicePending) return
     const message = validateAnswer(answer)
     if (message) {
       setError(message)
@@ -55,7 +60,7 @@ export default function Interview() {
 
   return (
     <>
-      <AbandonGuard enabled={hasAnswers} onDiscard={discardInterview} />
+      <AbandonGuard onBlocked={stopVoice} enabled={hasAnswers || voicePending} onDiscard={discardInterview} />
       <PageHeading eyebrow="02 / Practice · Local interview" title="One question. Your perspective.">Take your time. You can return to earlier questions before completing.</PageHeading>
       <div className="progress-header"><span>Question {session.index + 1} of {session.questions.length}</span><span>{count} of {session.questions.length} answers ready</span></div>
       <p className="small-note">Question plan: {sourceLabel}. {session.generation?.reason && 'AI was unavailable or its quota was reached; questions come from the fixed bank. '}{session.generation?.maxFollowups ? `${session.generation.baseCount} base questions + ${followupCount} of ${session.generation.maxFollowups} optional follow-ups. New follow-ups are added to the end.` : ''}</p>
@@ -67,11 +72,12 @@ export default function Interview() {
             <p className="small-note">{question.subject?.toUpperCase()} · {question.parentId ? `Follow-up · ${question.source === 'gemini' ? 'Live Gemini' : 'Mock demonstration'}` : sourceLabel} · {question.applicability}</p><h2 id="question-title" ref={questionRef} tabIndex={-1}>{question.text}</h2>
           </Card>
           <Card aria-label="Your answer">
+            <Suspense fallback={<p className="small-note">Loading optional voice controls. You can type below.</p>}><VoiceAnswer stopRef={voiceStop} key={session.id + ':' + question.id} interviewId={session.id} question={question} disabled={busy} answerLength={answer.length} onDirty={setVoicePending} onConfirm={text => { dispatch({ type: 'answer', id: question.id, value: answer ? answer + '\n\n' + text : text }); setError('') }} /></Suspense>
             <form onSubmit={advance}>
               <TextAreaField id="answer" label="Your answer" hint="Up to 3,000 characters. Use Save progress before leaving or refreshing." value={answer} onChange={(event) => { dispatch({ type: 'answer', id: question.id, value: event.target.value }); setError('') }} rows={8} disabled={busy} aria-invalid={Boolean(error)} aria-describedby={error ? 'answer-hint answer-error' : 'answer-hint'} />
               <p className="small-note">{answer.length.toLocaleString()} / {ANSWER_LIMIT.toLocaleString()} characters</p>
               {error && <p id="answer-error" className="form-error" role="alert">{error}</p>}
-              <p role="status" className="small-note">{busy ? 'Sending answers to the local server…' : hasAnswers ? 'You have unsaved edits.' : 'Saved progress is up to date.'}</p>{requestError && <p role="alert" className="form-error">{requestError}</p>}<div className="actions">{canFollowup && <Button variant="secondary" disabled={busy || Boolean(validateAnswer(answer)) || Object.values(session.answers).some(text => text.length > ANSWER_LIMIT)} onClick={() => requestFollowup(question.id)}>Save & ask a follow-up</Button>}<Button variant="secondary" disabled={busy || !hasAnswers || Object.values(session.answers).some(text => text.length > ANSWER_LIMIT)} onClick={saveInterview}>Save progress</Button><Button variant="secondary" disabled={busy || session.index === 0} onClick={() => move(session.index - 1)}>Previous question</Button><Button type="submit" disabled={busy}>{busy ? 'Submitting…' : lastQuestion ? (requestError ? 'Retry completion' : 'Complete interview') : 'Next question →'}</Button></div>
+              <p role="status" className="small-note">{busy ? 'Sending answers to the local server…' : hasAnswers ? 'You have unsaved edits.' : 'Saved progress is up to date.'}</p>{requestError && <p role="alert" className="form-error">{requestError}</p>}<div className="actions">{canFollowup && <Button variant="secondary" disabled={busy || voicePending || Boolean(validateAnswer(answer)) || Object.values(session.answers).some(text => text.length > ANSWER_LIMIT)} onClick={() => requestFollowup(question.id)}>Save & ask a follow-up</Button>}<Button variant="secondary" disabled={busy || !hasAnswers || Object.values(session.answers).some(text => text.length > ANSWER_LIMIT)} onClick={saveInterview}>Save progress</Button><Button variant="secondary" disabled={busy || voicePending || session.index === 0} onClick={() => move(session.index - 1)}>Previous question</Button><Button type="submit" disabled={busy || voicePending}>{busy ? 'Submitting…' : lastQuestion ? (requestError ? 'Retry completion' : 'Complete interview') : 'Next question →'}</Button></div>
             </form>
           </Card>
         </div>

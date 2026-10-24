@@ -1,9 +1,9 @@
 # Deployment (pending)
 
 No application has been deployed. Phase 4 source was pushed to GitHub at the user’s
-request; that is not a deployment. The user is configuring a Clerk application.
+request; that is not a deployment. Clerk is configured locally.
 
-## Current local setup — Phase 6
+## Current local setup — through Phase 9
 
 See ../README.md for commands. server/.env requires DATABASE_URL and optionally PORT
 and CORS_ORIGINS. Clerk also requires CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY
@@ -107,3 +107,51 @@ lifecycle cleanup, resource isolation and shared upload limits. No deployment ad
 Retention cleanup runs while the API is running; inaccessible expired content may
 remain physically present until API and storage are both available. Database
 interview copies have their own explicit deletion lifecycle.
+
+
+Phase 8 remains local-only. Microphone capture requires a secure context (localhost
+or HTTPS), AudioContext at 16 kHz and AudioWorklet. The same-origin public worklet file
+must be served. Audio capture has no browser codec dependency; only canonical PCM WAV
+is accepted server-side. Optional question playback needs an installed on-device voice.
+VOICE_MODE overrides AI_MODE for transcription (disabled/mock/live); VOICE_MODEL
+optionally overrides GEMINI_MODEL, using the existing server-only GEMINI_API_KEY.
+No new paid service/account is provisioned. Shared AI quotas apply to voice too.
+Audio/transcript content is transient in this app; Google live processing follows its
+API terms. Future production work must account for transport/proxy limits and provider
+terms, not assume client cancellation revokes an already-sent provider request.
+
+## Phase 9 release review — 2026-10-23
+
+Publication remains blocked by the existing production guard. No deployment or
+remote CI run is claimed. Local verification is in PROGRESS.md.
+
+- Full npm audit after compatible Prisma 7.10.1 updates: **4 findings (3 high,
+  1 moderate)** in dev-only S3rver/busboy/dicer/fast-xml-parser. `npm audit --omit=dev`
+  reports zero. S3rver is loopback-only with known credentials; replace it with
+  private hosted storage before publication. Do not blindly force a major downgrade.
+- Request logs are allowlisted metadata only. Local monitor thresholds are in
+  config/monitoring.json; configure actual hosted log retention/access/alert routing
+  in Phase 10. No telemetry provider or billing account was provisioned.
+- Readiness is `/api/v1/ready`; liveness `/api/v1/live`. Readiness checks local DB/S3,
+  not external Clerk/Gemini. Preserve bounded SQL timeouts and graceful draining.
+- HTTP rate limits are per-process; before horizontal scaling use shared counters
+  and verify trusted proxy configuration. Durable AI ceiling settings must match
+  on all API instances. Configure provider budget alerts separately; quotas are not
+  a hard currency cap and unsuccessful calls may still be charged.
+- Explicit production retention is still required for account deletion, usage ledger
+  and orphan AI plan caches. Interview data persists until deletion; uploaded files
+  and extracted upload text expire after 24h; copied interview context persists.
+- Database least privilege/TLS, backup restore, production Clerk domains/OAuth,
+  frontend CSP/security headers and private storage policies require Phase 10 work.
+  Do not disable the production guard merely to publish the current local helpers.
+- CI config is present and uses synthetic identities/mock AI; remote execution awaits
+  authorized commit/push. The user confirmed the real-account journey and Phase 8 working on 2026-10-24
+  after the manual checklists. This is user-reported local acceptance, distinct from
+  assistant-observed Chromium fixtures and live synthetic evals; deployed acceptance
+  remains a future requirement.
+
+Sources used for review: [Express security guidance](https://expressjs.com/advanced/best-practice-security/),
+[OWASP safe logging](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html),
+[Playwright web servers](https://playwright.dev/docs/test-webserver) and
+[Playwright CI](https://playwright.dev/docs/ci). Adapted to this local architecture;
+these references do not certify the application as secure.

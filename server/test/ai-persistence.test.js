@@ -66,6 +66,14 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('durable AI workflow', () => {
     expect((await service.read(row.id)).answers).toEqual(row.answers)
     expect(generate).toHaveBeenCalledTimes(2)
   })
+
+  it('shares a server-wide daily ceiling across owners without calling the provider', async () => {
+    const { ai, user, generate } = await setup(undefined, { globalDailyLimit: 1 })
+    const other = await db.user.create({ data: { clerkUserId: 'quota-' + randomUUID() } })
+    await db.aiOperation.create({ data: { ownerId: other.id, key: 'quota-fixture', kind: 'report', inputHash: 'synthetic', status: 'failed', model: 'mock-v1', rubric: 'coaching-v1' } })
+    await expect(ai.run(user.id, 'global-cap', 'followup', {})).rejects.toMatchObject({ code: 'AI_QUOTA' })
+    expect(generate).not.toHaveBeenCalled()
+  })
   it('enforces durable per-user daily quotas without changing saved state', async () => {
     const { service, generate } = await setup(undefined, { dailyLimit: 1 })
     let row = await start(service)
@@ -157,6 +165,44 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('durable AI workflow', () => {
       expect(row.result).toBeNull()
       expect(JSON.stringify(row)).not.toContain('private provider details')
     }
+  })
+
+  it('recovers from explicit 503 with one bounded automatic retry', async () => {
+    let calls = 0
+    const { ai, user, generate } = await setup({ mode: 'live', model: 'test', generate: async () => {
+      if (++calls === 1) throw Object.assign(new Error(), { status: 503 })
+      return { data: { text: 'A valid follow-up' }, inputTokens: 0, outputTokens: 0 }
+    } }, { retryDelayMs: 0 })
+    expect(await ai.run(user.id, 'recover', 'followup', { questions: [] })).toEqual({ text: 'A valid follow-up' })
+    await ai.run(user.id, 'recover', 'followup', { questions: [] })
+    expect(generate).toHaveBeenCalledTimes(2)
+  })
+  it('allows an explicit voice retry of the same recording after 503, preserving durable attempt limits', async () => {
+    const options = { retryDelayMs: 0, retryCooldownMs: 0, retainResult: false, validate: (_kind, data) => data }
+    const { ai, user, generate } = await setup({ mode: 'live', model: 'test', generate: async () => { throw Object.assign(new Error(), { status: 503 }) } }, options)
+    const input = { audio: 'synthetic' }
+    await expect(ai.run(user.id, 'voice-retry', 'transcription', input)).rejects.toMatchObject({ code: 'AI_UNAVAILABLE', details: { retryable: true } })
+    await expect(ai.run(user.id, 'voice-retry', 'transcription', { audio: 'changed' })).rejects.toMatchObject({ code: 'AI_INPUT_CHANGED' })
+    const row = await db.aiOperation.findUnique({ where: { ownerId_key: { ownerId: user.id, key: 'voice-retry' } } })
+    expect(row.attempts).toBe(2)
+    const cooldown = createAiOperations(db, { mode: 'live', model: 'test', generate }, { ...options, retryCooldownMs: 60000 })
+    await expect(cooldown.run(user.id, 'voice-retry', 'transcription', input)).rejects.toMatchObject({ code: 'AI_RETRY_COOLDOWN' })
+    await expect(ai.run(user.id, 'voice-retry', 'transcription', input)).rejects.toMatchObject({ details: { retryable: false } })
+    await expect(ai.run(user.id, 'voice-retry', 'transcription', input)).rejects.toMatchObject({ details: { retryable: false } })
+    expect(generate).toHaveBeenCalledTimes(4)
+  })
+  it('recovers an old failed voice request without storing its transcript', async () => {
+    let calls = 0
+    const { ai, user, generate } = await setup({ mode: 'live', model: 'test', generate: async () => {
+      if (++calls <= 2) throw Object.assign(new Error(), { status: 503 })
+      return { data: { transcript: 'Recovered speech' } }
+    } }, { retryDelayMs: 0, retryCooldownMs: 0, retainResult: false, validate: (_kind, data) => data })
+    await expect(ai.run(user.id, 'voice-old', 'transcription', { audio: 'sample' })).rejects.toMatchObject({ code: 'AI_UNAVAILABLE' })
+    const replacement = createAiOperations(db, { mode: 'live', model: 'replacement', generate }, { retryDelayMs: 0, retryCooldownMs: 0, retainResult: false, validate: (_kind, data) => data })
+    expect(await replacement.run(user.id, 'voice-old', 'transcription', { audio: 'sample' })).toEqual({ transcript: 'Recovered speech' })
+    await expect(replacement.run(user.id, 'voice-old', 'transcription', { audio: 'sample' })).rejects.toMatchObject({ code: 'AI_RESULT_NOT_RETAINED' })
+    expect(generate).toHaveBeenCalledTimes(3)
+    expect((await db.aiOperation.findUnique({ where: { ownerId_key: { ownerId: user.id, key: 'voice-old' } } })).result).toBeNull()
   })
 
 })
