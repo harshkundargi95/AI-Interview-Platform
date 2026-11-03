@@ -36,3 +36,12 @@ AuthProvider and build are unchanged. The fixture tests safe AI text rendering a
 the complete persisted workflow, but does not exercise hosted Clerk/Google login.
 No frontend secrets or new VITE_ variables were added. Request IDs are available
 in API response headers/error envelopes for troubleshooting.
+
+## Hosted free demo (Phase 10)
+
+Use repository root in Vercel Hobby and the free vercel.app address. Set
+VITE_DEPLOYMENT_MODE=demo, VITE_API_URL=https://YOUR_API.onrender.com/api/v1 and the matching
+Clerk development publishable key (pk_test_...). Without explicit demo mode hosted builds
+still require pk_live_. No database, S3 or secret Clerk key belongs in VITE variables.
+The UI displays demo/cold-start/quota guidance. Rebuild after environment changes.
+See ../docs/DEPLOYMENT.md. Nothing has been published; local builds remain supported.

@@ -1,3 +1,5 @@
+import pg from 'pg'
+import { hardenDemoTables } from '../src/demoDeployment.js'
 import { authEnvironment, tokenFor } from './auth-fixture.js'
 import { randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
@@ -16,6 +18,19 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('real PostgreSQL persistence', (
   const answers = session => session.questions.map(q => ({ questionId: q.id, text: 'Explain ' + q.subject }))
   beforeAll(async () => { db = createDatabase(process.env.TEST_DATABASE_URL); await db.user.upsert({ where: { id: 'persistence-test-owner' }, create: { id: 'persistence-test-owner', clerkUserId: 'user_persistence' }, update: {} }); service = createPersistentInterviewService(db, 'persistence-test-owner'); app = createApp({ service }) })
   afterAll(async () => { await db?.$disconnect() })
+
+  it('revokes public table privileges without breaking owner reads after demo hardening', async () => {
+    const client = new pg.Client({ connectionString: process.env.TEST_DATABASE_URL })
+    try {
+      await client.connect()
+      await client.query('GRANT SELECT ON public."Answer" TO PUBLIC')
+      await hardenDemoTables(client)
+      await hardenDemoTables(client)
+      const result = await client.query(`SELECT count(*)::int AS count FROM pg_class c, LATERAL aclexplode(c.relacl) a WHERE c.oid = 'public."Answer"'::regclass AND a.grantee = 0`)
+      expect(result.rows[0].count).toBe(0)
+      expect(await db.answer.count()).toBeTypeOf('number')
+    } finally { await client.end() }
+  })
 
   it('deduplicates concurrent starts and freezes exact ordered question metadata', async () => {
     const input = { requestId: randomUUID(), preferences }

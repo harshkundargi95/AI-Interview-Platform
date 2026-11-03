@@ -234,3 +234,24 @@ Reference: https://ai.google.dev/gemini-api/docs/troubleshooting
   not token/currency budgets. Existing running limits and bounded retries still apply.
 - Logs contain only event/time/requestId/method/route template/status/duration/code.
   Unknown paths are logged as unmatched; no raw path, query, identity or content.
+
+## Phase 10 hosting behavior
+
+Endpoint paths/payloads are unchanged. The deployed base URL will be the actual Render
+HTTPS origin plus /api/v1 (not yet provisioned). Exact production frontend origins govern
+CORS and token azp. Disallowed origins receive 403, unauthenticated protected routes 401.
+Readiness remains DB plus bucket, not a Clerk/Gemini availability guarantee. Production
+returns live AI configuration, with voice live or disabled. Network-error wording now
+works for both local and hosted servers without clearing drafts. Resume links remain
+owner-authenticated and expire after 60 seconds; stable signing config survives redeploys.
+
+## Free demo deployment note — 2026-10-25
+
+API contract unchanged. Deployment mode explicitly allows Clerk development tokens on
+exact hosted HTTPS origins; tokens/ownership remain verified. Demo AI caps at most 5
+operations/user/day and 20 globally/day, shared with voice; existing quota/fallback error
+behavior remains. Free API cold starts may temporarily return hosting loading responses;
+retry after waking without clearing drafts. Supabase is an internal persistence provider,
+not a second browser-facing application API. Disable its Data API before first migration;
+startup additionally revokes anon/authenticated/public privileges on app tables.
+Resume access expires at24h; physical deletion can wait for API/storage availability.

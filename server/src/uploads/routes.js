@@ -3,7 +3,7 @@ import express from 'express'
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { ApiError } from '../middleware/errors.js'
 import { parseResume, MAX_UPLOAD } from './parse.js'
-const secret = randomBytes(32)
+const secret = process.env.RESUME_LINK_SECRET || randomBytes(32)
 const sign = (owner, id, expires) => createHmac('sha256', secret).update(`${owner}:${id}:${expires}`).digest('hex')
 const publicRow = ({ id, filename, text, expiresAt }) => ({ id, filename, text, expiresAt })
 export function resumeRoutes(db, storage) {
@@ -40,7 +40,7 @@ export function resumeRoutes(db, storage) {
     } catch {
       // Keep pending metadata if storage deletion fails so the sweeper can retry.
       try { await storage.remove(objectKey); await db.resume.delete({ where: { id: row.id } }) } catch { /* next cleanup */ }
-      throw new ApiError(503, 'STORAGE_UNAVAILABLE', 'Resume storage is unavailable. Start local storage, then retry. Your text draft is unchanged.')
+      throw new ApiError(503, 'STORAGE_UNAVAILABLE', 'Resume storage is unavailable. Check the storage service, then retry. Your text draft is unchanged.')
     }
   })
   router.post('/:id/link', async (req, res) => {

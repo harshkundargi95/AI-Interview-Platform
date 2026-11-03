@@ -1,157 +1,228 @@
-# Deployment (pending)
+# Deployment — zero-cost portfolio demo
 
-No application has been deployed. Phase 4 source was pushed to GitHub at the user’s
-request; that is not a deployment. Clerk is configured locally.
+Current target (2026-10-25): Vercel Hobby + Render Free + Supabase Free PostgreSQL
+and private Storage + Clerk development + Gemini free tier. No purchased domain.
+The user's zero-cost instruction supersedes the earlier paid Render/production Clerk
+plan. The source is prepared; no accounts, services or URLs have been deployed here.
+Phase 10 preparation is included in this source release. Phase 11 remains pending.
 
-## Current local setup — through Phase 9
+## Cost boundary and provider limits
 
-See ../README.md for commands. server/.env requires DATABASE_URL and optionally PORT
-and CORS_ORIGINS. Clerk also requires CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY
-on the server, plus VITE_CLERK_PUBLISHABLE_KEY on the client. client/.env.example retains the public VITE_API_URL; never place
-database credentials in VITE_* variables.
+This is a non-commercial portfolio demo, not an always-on production service.
+Use free accounts/plans only. Do not activate trials, attach payment methods, enable
+usage billing, or upgrade automatically. If a provider requires a card or paid feature
+for your account/region, stop and reassess; do not accept a paid substitute.
+The app cannot inspect your provider billing accounts or guarantee future pricing.
 
-npm run db:local starts real PostgreSQL on loopback port 55432 and preserves files
-under server/.data/postgres. The helper and its known local password are development
-conveniences only. The application refuses production and non-local database hosts
-until deployment configuration is verified. No provisional owner is enabled. Do not tunnel or publish it.
+| Component | Selected service | Relevant restriction |
+| --- | --- | --- |
+| Frontend | Vercel Hobby, free vercel.app address | Personal/non-commercial use and plan quotas |
+| API | Render Free web service | Sleeps after 15 minutes idle; waking takes about a minute |
+| Database and files | One dedicated Supabase Free project | 500 MB database, 1 GB files; inactivity can pause the project |
+| Authentication | Clerk development instance | Real verified accounts, development limits; not production OAuth |
+| Questions/reports/voice | Gemini Free-tier project | Model-specific quotas; exhausted quota means refusal/fallback, not an upgrade |
 
-After npm ci, run npm run db:generate. Apply committed migrations with npm run
-db:migrate. Optional npm run db:seed creates a labeled development example.
-Do not run development seeding in production. Never delete .data to solve a migration
-problem; it contains your saved interviews.
+Render's free database expires after 30 days, so this blueprint creates no Render DB.
+Render bandwidth/build overages can charge an account with payment details; without a
+payment method the corresponding service/build is suspended instead. Keep this demo
+in a free workspace without billing details. Do not use uptime pings to defeat sleep.
+Sources: [Render Free](https://render.com/docs/free),
+[Vercel Hobby](https://vercel.com/docs/plans/hobby),
+[Supabase Free limits](https://supabase.com/pricing).
 
-## How the local setup carries over to deployment
+Gemini must use a dedicated project showing **Free Tier**, with no active linked billing
+account. Verify the selected model has free access in AI Studio; do not assume a ChatGPT
+or Gemini consumer subscription includes API usage. GEMINI_FREE_TIER_CONFIRMED=true is
+only your acknowledgement after checking, not a billing verification performed by code.
+The application caps demo AI at 5 operations/user/day and 20 globally/day (lower values
+allowed), including voice. These are not token/currency limits; retries can make more
+than one provider request. No paid model/provider fallback is implemented. See
+[Gemini billing](https://ai.google.dev/gemini-api/docs/billing).
 
-PostgreSQL is already provided by the project's embedded-postgres development
-dependency. It runs a real local database; you do not need a separate Windows
-PostgreSQL installation or pgAdmin for this setup. Prisma is installed through
-npm and connects the Express backend to that database using server/.env.
+## 1. Prepare the source and account configuration
 
-This is suitable for development. The deployed application is planned to use
-managed PostgreSQL on Render instead of the local helper:
+Commit/push Phase 10 when authorized and inspect GitHub Actions for that exact commit.
+The local app retains its four-terminal README workflow and unchanged .env files.
+Use the existing Clerk **development** instance or a dedicated demo development instance;
+enable Google there. Do not complete Clerk's production-domain form or buy a domain.
+Keep matching pk_test_/sk_test_ keys private except the publishable frontend key.
+Clerk supports host-provided preview addresses with development keys:
+[Clerk environments](https://clerk.com/docs/guides/development/managing-environments).
 
-| During development | During deployment |
+Choose a stable Vercel project name, e.g. YOUR-PROJECT.vercel.app (availability must be
+confirmed in Vercel). The exact resulting URL is required for CORS; no *.vercel.app
+wildcard. You can create the Vercel project later and update CORS before testing.
+Use a separate database for the demo; local interview records are not transferred.
+
+## 2. Create one Supabase Free project
+
+Use a dedicated Free organization/project; decline Pro, paid IPv4 and other add-ons.
+Choose a region near the Render API (the template uses Singapore). Save its database
+password privately. **Disable Data API in project API settings before migrations**:
+this app accesses PostgreSQL through Express/Prisma, not browser Supabase REST APIs.
+Do not put Supabase anon/service-role/database keys in the frontend. Authentication
+remains Clerk; there is no Supabase Auth integration to configure.
+
+In Connect, select the shared **session pooler**, port **5432**, with its IPv4-compatible
+host, username including project reference, database and password. Copy the real URL
+as DATABASE_URL. Do not use transaction pooler port 6543: migrations/advisory locks need
+session semantics. Percent-encode special characters in the password if building a URL.
+Download the database CA certificate from Supabase settings and provide its PEM contents
+as DATABASE_CA_CERT (multiline or escaped newlines). Runtime and migration connections
+verify certificates/hostnames. Never fix TLS errors by disabling verification.
+References: [connections](https://supabase.com/docs/guides/database/connecting-to-postgres),
+[SSL](https://supabase.com/docs/guides/platform/ssl-enforcement),
+[Prisma/Data API](https://supabase.com/docs/guides/database/prisma).
+
+Create a Storage bucket named `resumes`, **Public OFF**, maximum object size 2 MiB.
+The server stores bytes as application/octet-stream, so allow that MIME type if adding
+bucket MIME restrictions; server validation still checks actual PDF/DOCX content.
+Enable S3 access and generate S3 access/secret keys. Copy the endpoint and region exactly
+from its settings, normally `https://PROJECT.storage.supabase.co/storage/v1/s3`.
+Set S3_FORCE_PATH_STYLE=true. Do not use the database password as an S3 secret.
+
+Supabase S3 keys bypass RLS and cover the project's buckets: keep them backend-only in
+a dedicated demo project. Our API checks Clerk ownership and expiring download signatures.
+Do not add public Storage policies. Verify direct unauthenticated access fails after
+setup. [Supabase S3 authentication](https://supabase.com/docs/guides/storage/s3/authentication).
+
+## 3. Deploy the Render Free API
+
+After publication authorization, import the repository as a Blueprint using root
+render.yaml. Review the plan as **Free** and confirm it creates only one web service,
+no database/disk/cron/paid resources. Both build and start work from repository root.
+Keep automatic deploys off and one instance. No preDeployCommand is used because it
+requires paid compute ([Render deploys](https://render.com/docs/deploys)).
+
+The template runs:
+
+```sh
+npm ci --include=dev && npm run db:generate && npm prune --omit=dev
+node server/scripts/start-demo.js
+```
+
+The first line builds; the second is the start command. Startup validates settings,
+applies committed migrations, revokes public/anon/authenticated access to this app's
+seven tables plus Prisma metadata, then starts the API. On failure it does not listen.
+These revocations are repeated safely on restart; existing owner access remains.
+Storage/auth schemas are not modified. Disable Data API before first startup as above
+so there is no migration-time exposure. No resets, seed or user deletion are run.
+
+Set the manually requested variables in Render, never in Git or chat:
+
+| Variable | Value |
 | --- | --- |
-| npm run db:local starts PostgreSQL on your PC | A hosted PostgreSQL service runs the database |
-| Data lives in server/.data/postgres | Data lives in the hosted database |
-| server/.env supplies the local connection | Backend hosting settings supply the production DATABASE_URL securely |
-| Clerk development application and verified ownership | Separate production Clerk application/domain/OAuth configuration |
+| DATABASE_URL | Supabase session-pooler URL on 5432 |
+| DATABASE_CA_CERT | Supabase CA certificate PEM |
+| CORS_ORIGINS | Exact https://YOUR-PROJECT.vercel.app, no trailing slash |
+| CLERK_PUBLISHABLE_KEY | Matching pk_test_... |
+| CLERK_SECRET_KEY | Matching sk_test_... |
+| GEMINI_API_KEY | Key for the dedicated project with no paid billing |
+| GEMINI_MODEL | Model confirmed available on that project's free tier |
+| GEMINI_FREE_TIER_CONFIRMED | true, only after checking AI Studio billing |
+| S3_ENDPOINT | Supabase S3 URL including /storage/v1/s3 |
+| S3_REGION | Region from S3 settings |
+| S3_BUCKET | resumes |
+| S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY | Generated S3 credentials |
 
-Prisma stays in the project. The models, queries and committed migrations carry
-over; switching to hosted PostgreSQL does not require a database rewrite.
-Deployment still requires configuring the hosted connection and security settings,
-applying migrations, and replacing the current local-only restrictions during the deployment phase. It is not ready for publication merely by changing
-DATABASE_URL.
+Blueprint defaults: NODE_ENV=production, DEPLOYMENT_MODE=demo, DATABASE_TRANSPORT=tls,
+S3_FORCE_PATH_STYLE=true, AI_MODE=live, VOICE_MODE=live, AI_DAILY_LIMIT=5,
+AI_GLOBAL_DAILY_LIMIT=20. RESUME_LINK_SECRET is generated once. Keep it stable across
+restarts; rotating it invalidates outstanding 60-second links. Voice can be disabled
+explicitly if its model isn't free/available; typed answers remain supported.
 
-Schema migrations create or update tables; they do not copy your local interview
-records into the hosted database. If you want those records online, plan and verify
-a separate data transfer. Do not upload the local database directory or reuse its
-development credentials as production configuration.
+NODE_ENV stays production for hosted runtime behavior. Only the explicit deployment
+mode permits development Clerk keys; it does not bypass token/owner checks or accept
+mock AI. Omitting demo mode still enforces production Clerk live keys.
 
-## Schema changes, tests and backups
+Once running, open https://YOUR-API.onrender.com/api/v1/ready. Expect status ready.
+Cold-start loading pages or a paused Supabase project are availability issues, not a
+reason to disable authentication/TLS. Startup errors log a category without raw secrets;
+check settings/migration status privately if DEMO_START_FAILED occurs.
 
-Committed migrations build a fresh database; test:db verified this on real local
-PostgreSQL. It creates/drops only a unique disposable database. For future schema
-changes, use Prisma migrate dev with a suitable local shadow database, inspect the
-generated SQL, retain it in version control and verify it against a fresh database.
-Do not edit an already applied migration or reset a database containing wanted data.
+## 4. Deploy Vercel Hobby frontend
 
-Before production migrations, make and verify a restorable backup and assess
-compatibility with the previous server version. Production backup/restore and
-rollback are not implemented or verified in Phase 4. Reverting application code
-does not automatically revert database schema or recover deleted interviews.
+Import the same repository as a **personal Hobby** project. Root directory: repository
+root, not client. Framework: Vite. Node24. Install npm ci; build npm run build; output
+client/dist. Root vercel.json supplies routing/security headers and these commands.
+Choose these variables for the deployment environment you will actually use:
 
-## Planned Phase 10 release
+```text
+VITE_DEPLOYMENT_MODE=demo
+VITE_API_URL=https://YOUR-API.onrender.com/api/v1
+VITE_CLERK_PUBLISHABLE_KEY=YOUR_PK_TEST_PUBLISHABLE_KEY
+```
 
-- Vercel: client/dist with non-asset route rewrites to /index.html.
-- Render: Express and managed PostgreSQL with distinct production credentials.
-- Private S3-compatible storage: resumes, beginning in Phase 7.
-- Include shared/ in both workspace build contexts.
-- Verify Clerk authentication, ownership, HTTPS, CORS, provider configuration,
-  persistence, migrations, backups, monitoring and rollback.
-- Resolve or explicitly assess dependency advisories recorded in PROGRESS.md.
-- Configure production guards/origins after reviewing the authenticated deployment.
+Use the actual pk_test_ value; the example is a placeholder. Never put other credentials
+in VITE variables. Rebuild after changes. The UI shows a free-demo label, cold-start and
+quota notice, and asks for fictional resume details. Typed/voice coaching labels remain.
+Confirm the actual assigned vercel.app URL matches Render CORS_ORIGINS; if it differs,
+update Render and restart before testing. Keep this one stable URL for demonstrations.
+Changing preview domains requires explicit matching origins; never allow wildcard azp.
 
-Recheck official hosting constraints and supported versions during Phase 10.
-Prepare the release before asking for publication authorization. Report actual
-deployed URLs only after deployment and live verification; deployment remains pending.
+## 5. Verify and close the phase
 
-## Google OAuth and release readiness
+These checks remain pending until the actual hosted setup exists:
 
-Enable Google for sign-up/sign-in in Clerk SSO connections. Development can use
-shared OAuth credentials; production requires custom Google OAuth credentials and
-authorized redirects configured in the provider dashboards. Never expose secrets
-in VITE_* or commit .env files. Use a regular browser for live Google checks.
-A public health response does not prove OAuth works. Phase 5 live verification is
-tracked separately in PROGRESS.md; no publication is authorized by this phase.
+- [ ] All provider dashboards show free plans/no paid billing; no custom domain purchased.
+- [ ] HTTPS frontend/API, deep links /sign-in, /setup, /history, static voice worklet.
+- [ ] Google sign-in with Clerk development; sign-out/expired sessions handled.
+- [ ] Create, answer, save, Gemini feedback, refresh, resume from History, delete.
+- [ ] Voice capture/transcription/edit/confirm; text fallback and microphone denial.
+- [ ] Resume private upload/download/delete; another account cannot access it.
+- [ ] Supabase Data API disabled; anon/authenticated roles have no app-table privileges.
+- [ ] Runtime and migration TLS connect with correct CA; wrong CA fails.
+- [ ] Render sleep/restart preserves DB/files; show wake delay without clearing drafts.
+- [ ] Low quota yields explicit failure/fixed-bank fallback, never fake real feedback.
+- [ ] Back up and restore synthetic demo data into an isolated DB; test code rollback.
+- [ ] Record URLs, release commit/date and actual limits, then update PROGRESS/checklist.
 
-## Phase 6 local AI configuration
+## Retention, recovery and limits
 
-Keep Gemini secrets only in server/.env. AI_MODE=mock is the development default.
-Live mode requires a permitted GEMINI_MODEL and GEMINI_API_KEY; setting a key alone
-does not enable provider calls. Restart the API after configuration changes. Start
-a new interview after switching modes; old sessions cannot silently send mock
-answers to a newly enabled live provider. Apply migration 202610110001_ai_operations.
+Supabase S3 lacks bucket lifecycle configuration/versioning; do not follow the previous
+AWS lifecycle instructions here. App download/list access expires at 24h. Cleanup runs
+on API startup and once a minute while awake, deleting expired files/text. If Render
+sleeps or Supabase pauses, physical deletion is delayed until a later successful cleanup.
+Manually remove unwanted files in Storage if the demo is retired; do not delete only
+storage metadata SQL rows. No paid cron or fake keepalive was added.
+[Supabase S3 compatibility](https://supabase.com/docs/guides/storage/s3/compatibility).
 
-Before deployment review provider data handling, budgets, model availability,
-quotas, retention and monitoring. The local ledger limits work but is not billing
-reconciliation. Existing production/network guards remain; nothing is published.
+Use fictional resumes/answers for a public portfolio demo, especially with free AI
+provider data-processing terms. Saved interview context lasts until interview deletion;
+usage ledger/orphan plan caches and account deletion still need an explicit retention
+procedure. Do not claim immediate erasure from backups/providers or guaranteed recovery.
 
-## Phase 7 local-only storage gate
+Free backup/PITR capabilities differ from the earlier paid plan. Export your application
+schema/data with PostgreSQL pg_dump using a verified TLS connection and private PG*
+environment variables, encrypt/store locally, and rehearse restoring into a disposable
+PostgreSQL database. Never include Supabase-managed auth/storage schemas in a blind
+restore. Object bytes are separate from a DB backup. No paid PITR guarantee is assumed.
 
-Start `npm run storage:local`; port 4569, bucket resumes, files server/.data/objects.
-Never expose this development emulator or its fixed development credentials. It is
-archived upstream and has dependency advisories. Production requires a maintained,
-private S3-compatible service, restricted credentials, verified bucket policy and
-lifecycle cleanup, resource isolation and shared upload limits. No deployment added.
-Retention cleanup runs while the API is running; inaccessible expired content may
-remain physically present until API and storage are both available. Database
-interview copies have their own explicit deletion lifecycle.
+Before schema changes save a backup; use additive migrations compatible with old code.
+Restore a previous Vercel/API deployment to roll back code, but do not reverse migrations
+or reset the hosted DB blindly. Repair forward, or restore into a new isolated database
+and cut over after verification. Free Render rollback history is limited. Keep release
+commit IDs and a source copy; do not rely on an unlimited hosting history.
 
+API rate limits are process-local; keep one instance. Forwarded IP headers remain
+untrusted, so Render proxy users can share a rate-limit bucket. Readiness checks DB/S3,
+not Clerk/Gemini. Do manual health checks for demos; no keepalive monitoring is configured.
+Parser resource limits aren't antivirus/OS sandboxing. Frontend CSP is partial. Hosted
+Linux, Supabase TLS/S3 and real hosted Google/Gemini journey still need verification.
 
-Phase 8 remains local-only. Microphone capture requires a secure context (localhost
-or HTTPS), AudioContext at 16 kHz and AudioWorklet. The same-origin public worklet file
-must be served. Audio capture has no browser codec dependency; only canonical PCM WAV
-is accepted server-side. Optional question playback needs an installed on-device voice.
-VOICE_MODE overrides AI_MODE for transcription (disabled/mock/live); VOICE_MODEL
-optionally overrides GEMINI_MODEL, using the existing server-only GEMINI_API_KEY.
-No new paid service/account is provisioned. Shared AI quotas apply to voice too.
-Audio/transcript content is transient in this app; Google live processing follows its
-API terms. Future production work must account for transport/proxy limits and provider
-terms, not assume client cancellation revokes an already-sent provider request.
+## Local verification and implementation map
 
-## Phase 9 release review — 2026-10-23
+See PROGRESS.md for commands and actual outcomes. Added config/demo startup regressions
+and a real temporary-DB check for public privilege revocation. Hosted build checks must
+cover pk_test_ only with explicit demo, production still pk_live_, and localhost refusal.
 
-Publication remains blocked by the existing production guard. No deployment or
-remote CI run is claimed. Local verification is in PROGRESS.md.
+Files: render.yaml (free-only); server/src/config.js (explicit mode/cost acknowledgement),
+server/src/demoDeployment.js and server/scripts/start-demo.js (TLS migrations and Data API
+hardening); client/vite.config.js (build guard); Layout.jsx (demo notice). The earlier
+production mode remains supported by code but is not provisioned by any current manifest.
+No extra framework, auth provider, DB engine, paid resource, commit or push was introduced.
 
-- Full npm audit after compatible Prisma 7.10.1 updates: **4 findings (3 high,
-  1 moderate)** in dev-only S3rver/busboy/dicer/fast-xml-parser. `npm audit --omit=dev`
-  reports zero. S3rver is loopback-only with known credentials; replace it with
-  private hosted storage before publication. Do not blindly force a major downgrade.
-- Request logs are allowlisted metadata only. Local monitor thresholds are in
-  config/monitoring.json; configure actual hosted log retention/access/alert routing
-  in Phase 10. No telemetry provider or billing account was provisioned.
-- Readiness is `/api/v1/ready`; liveness `/api/v1/live`. Readiness checks local DB/S3,
-  not external Clerk/Gemini. Preserve bounded SQL timeouts and graceful draining.
-- HTTP rate limits are per-process; before horizontal scaling use shared counters
-  and verify trusted proxy configuration. Durable AI ceiling settings must match
-  on all API instances. Configure provider budget alerts separately; quotas are not
-  a hard currency cap and unsuccessful calls may still be charged.
-- Explicit production retention is still required for account deletion, usage ledger
-  and orphan AI plan caches. Interview data persists until deletion; uploaded files
-  and extracted upload text expire after 24h; copied interview context persists.
-- Database least privilege/TLS, backup restore, production Clerk domains/OAuth,
-  frontend CSP/security headers and private storage policies require Phase 10 work.
-  Do not disable the production guard merely to publish the current local helpers.
-- CI config is present and uses synthetic identities/mock AI; remote execution awaits
-  authorized commit/push. The user confirmed the real-account journey and Phase 8 working on 2026-10-24
-  after the manual checklists. This is user-reported local acceptance, distinct from
-  assistant-observed Chromium fixtures and live synthetic evals; deployed acceptance
-  remains a future requirement.
-
-Sources used for review: [Express security guidance](https://expressjs.com/advanced/best-practice-security/),
-[OWASP safe logging](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html),
-[Playwright web servers](https://playwright.dev/docs/test-webserver) and
-[Playwright CI](https://playwright.dev/docs/ci). Adapted to this local architecture;
-these references do not certify the application as secure.
+Verification on 2026-10-25: 140 tests passed (35 client, 70 server, 34 isolated local DB,
+1 Chromium), lint/build/secret scan and five hosted build guard combinations passed.
+Initial parser/worker timeouts passed on rerun without changed limits. Provider account
+configuration and hosted acceptance are still pending. See PROGRESS.md for details.

@@ -45,3 +45,17 @@ and local resume storage. Configure optional AI_DAILY_LIMIT / AI_GLOBAL_DAILY_LI
 in server/.env; defaults 30/500. No new secrets or migration required.
 Root `npm run test:e2e` uses an isolated test DB; `npm run monitor` consumes logs.
 Do not expose the test harness, local emulator or development database publicly.
+
+## Hosted free demo (Phase 10)
+
+Root render.yaml creates only a Free API. NODE_ENV stays production; DEPLOYMENT_MODE=demo
+explicitly permits matching Clerk development keys without bypassing auth/ownership.
+Supabase Free supplies PostgreSQL (session pooler5432, verified TLS) and private S3 storage.
+Disable Supabase Data API before first deployment. server/scripts/start-demo.js validates,
+migrates and revokes public/Data API app-table privileges before loading the API.
+No paid pre-deploy command, embedded DB or local S3rver is used in hosting.
+
+Demo requires acknowledgement of unbilled Gemini Free Tier and caps of at most 5/user/day,
+20 globally/day. This cannot inspect billing or guarantee free provider eligibility.
+Use real live AI or disabled voice, never unlabeled mock feedback. Full setup, secrets,
+backup/rollback, sleep/retention limits and pending live checks: ../docs/DEPLOYMENT.md.

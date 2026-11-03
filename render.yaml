@@ -1,0 +1,61 @@
+# Free portfolio demo. Do not add billing/payment methods or paid add-ons.
+# External Supabase Free database/storage must be configured first.
+services:
+  - type: web
+    name: ai-interview-api
+    runtime: node
+    plan: free
+    region: singapore
+    numInstances: 1
+    autoDeployTrigger: 'off'
+    maxShutdownDelaySeconds: 90
+    buildCommand: npm ci --include=dev && npm run db:generate && npm prune --omit=dev
+    startCommand: node server/scripts/start-demo.js
+    healthCheckPath: /api/v1/ready
+    envVars:
+      - key: DEPLOYMENT_MODE
+        value: demo
+      - key: GEMINI_FREE_TIER_CONFIRMED
+        sync: false
+      - key: DATABASE_CA_CERT
+        sync: false
+      - key: S3_FORCE_PATH_STYLE
+        value: 'true'
+      - key: NODE_VERSION
+        value: 24.13.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_TRANSPORT
+        value: tls
+      - key: DATABASE_URL
+        sync: false
+      - key: AI_MODE
+        value: live
+      - key: VOICE_MODE
+        value: live
+      - key: AI_DAILY_LIMIT
+        value: 5
+      - key: AI_GLOBAL_DAILY_LIMIT
+        value: 20
+      - key: RESUME_LINK_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false

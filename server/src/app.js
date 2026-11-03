@@ -1,3 +1,4 @@
+import { httpsOrigin, clerkKeysMatch, deploymentMode as validateDeploymentMode } from './config.js'
 import { requestTracing } from './middleware/observability.js'
 import { createRateLimit } from './middleware/rateLimit.js'
 import { voiceRoutes } from './voice/routes.js'
@@ -13,10 +14,12 @@ export const localOrigins = [
   'http://127.0.0.1:4173', 'http://localhost:4173',
 ]
 
-export function createApp({ db, service, ai = null, voice = null, storage = null, authOptions = {}, origins = localOrigins, environment = process.env.NODE_ENV, logger, rateLimitOptions, readinessTimeoutMs = 2000, isShuttingDown = () => false } = {}) {
-  // Deployment remains Phase 10. No runtime development identity exists in Phase 5.
-  if (environment === 'production') throw new Error('Deployment configuration is pending; this API remains local-only.')
-  if (!origins.length || origins.some(origin => !localOrigins.includes(origin))) throw new Error('CORS origins must be an explicit subset of the supported local frontend origins.')
+export function createApp({ db, service, ai = null, voice = null, storage = null, authOptions = {}, origins = localOrigins, environment = process.env.NODE_ENV, deploymentMode = process.env.DEPLOYMENT_MODE || 'production', logger, rateLimitOptions, readinessTimeoutMs = 2000, isShuttingDown = () => false } = {}) {
+  validateDeploymentMode(deploymentMode)
+  if (environment === 'production') {
+    if (!db || !storage || ai?.mode !== 'live' || (voice && voice.mode !== 'live') || !clerkKeysMatch(authOptions.publishableKey, authOptions.secretKey, deploymentMode)) throw new Error('Production requires live services; incomplete configuration remains local-only.')
+    if (!origins.length || !origins.every(httpsOrigin)) throw new Error('Production requires exact HTTPS frontend origins.')
+  } else if (!origins.length || origins.some(origin => !localOrigins.includes(origin))) throw new Error('CORS origins must be an explicit subset of the supported local frontend origins.')
   // Earlier regression fixtures are available only inside a Vitest process.
   const fixture = !db && process.env.NODE_ENV === 'test' && process.env.VITEST ? (service || createInterviewService()) : null
   if (!db && !fixture) throw new Error('A PostgreSQL database and Clerk authentication are required.')
@@ -25,6 +28,7 @@ export function createApp({ db, service, ai = null, voice = null, storage = null
   app.use(requestTracing(logger || (process.env.VITEST ? () => {} : undefined)))
   app.use((req, res, next) => {
     res.set('Cache-Control', 'no-store')
+    if (environment === 'production') res.set('Strict-Transport-Security', 'max-age=31536000')
     res.set('X-Content-Type-Options', 'nosniff')
     res.set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
     res.set('X-Frame-Options', 'DENY')

@@ -1,6 +1,141 @@
 # Progress
 
-## Current checkpoint — Phases 8 and 9 accepted — 2026-10-24
+## Current checkpoint — Phase 10 source release — 2026-11-03
+
+The user authorized committing and pushing the prepared free-demo Phase 10 changes.
+This release includes the implementation and documentation described in the historical
+2026-10-25 checkpoint below. Its 140 passing tests remain the implementation evidence;
+the suite was not rerun for this source release. Git synchronization and secret/exclusion
+checks are performed before publishing the commit. Git history records the resulting
+commit; remote CI status and actual hosting acceptance are separate checks.
+
+Nothing is deployed by this source release. Next: configure Supabase Free database/private
+storage, Render Free API, Vercel Hobby and Clerk development using DEPLOYMENT.md, then
+verify hosted behavior after publication is authorized. Phase 11 has not started.
+
+
+## Historical checkpoint — Phase 10 free-demo adaptation — 2026-10-25
+
+The user's entirely-free instruction supersedes the paid Render/custom-domain deployment
+plan. Prepared Vercel Hobby + Render Free API + one Supabase Free PostgreSQL/private
+Storage project + Clerk development + Gemini Free Tier. No resources purchased/created,
+no billing settings changed, no accounts/credentials provisioned, no commit/push/publication.
+Hosted acceptance remains pending. Phase 11 has not started.
+
+Implementation:
+- render.yaml now has plan free only, no database/disk/cron or paid pre-deploy hook.
+  server/scripts/start-demo.js validates, runs committed migrations with verified TLS,
+  hardens application table ACLs, then starts the API. It refuses non-demo startup and
+  logs only a generic failure category. Migration failure prevents serving traffic.
+- NODE_ENV=production retained; DEPLOYMENT_MODE=demo explicitly permits matching Clerk
+  test keys. Other/unknown modes cannot silently permit them. Real token verification,
+  exact HTTPS CORS/azp, ownership and hosted DB TLS remain enforced. No mock identities.
+- Added Supabase's HTTPS /storage/v1/s3 endpoint support and path-style setting; strict
+  CORS-origin validation remains separate. Disabled Data API is a required provider step;
+  startup additionally revokes PUBLIC/anon/authenticated table access. Dedicated project
+  required because Supabase S3 keys are project-wide and bypass Storage RLS.
+- Demo AI max 5 operations/user/day, 20 globally/day; operator must acknowledge a Gemini
+  free-tier project with no paid billing. This cannot verify provider billing and is not
+  a hard currency cap. No code selects a paid fallback or automatically upgrades services.
+- Frontend explicit demo env/build guard, visible demo/cold-start/quota/fictional-data
+  guidance; local workflow and real local env files unchanged.
+- Replaced DEPLOYMENT runbook with exact free setup and no-domain/no-card instructions.
+  Supabase S3 has no lifecycle policy; 24h access expiry stays, physical cleanup can wait
+  for API wake/storage availability. No fake uptime pings or paid monitoring added.
+
+Verification:
+- Server: 70 tests passed; 34 DB checks skipped in ordinary run then 34 passed against a
+  fresh isolated local PostgreSQL database. New DB test grants/revokes PUBLIC table
+  access twice and verifies owner reads still work. Hosted Supabase roles tested only
+  through unit fixtures; provider Data API disabling and actual TLS need live checks.
+- Chromium main journey passed with ephemeral signed test identity, real local DB and
+  mock AI. Does not claim hosted Google OAuth or new live Gemini/voice verification.
+- Five hosted build scenarios passed: explicit demo+test key accepted; production+test
+  rejected; demo+live rejected; localhost API rejected; production+live accepted. Normal
+  local build restored. Demo entry point refuses non-demo mode before migration.
+- Lint, build, secret scan and whitespace checks passed. Initial PDF parser test hit its
+  existing 8s bound; the whole server suite passed on rerun without changing parser limits.
+- Initial frontend run had 26 passing tests plus a worker-start timeout on the journey
+  file, not a completed suite. Standalone frontend rerun passed all 35 tests. Final total: 140 passed
+  (35 client + 70 server + 34 database + 1 Chromium).
+- No dependency changes during this revision. Prior clean install/prune and zero runtime
+  audit evidence is historical from 2026-10-24, not a fresh audit claim. Known dev-tooling
+  advisories and pg concurrent-query deprecation remain documented.
+
+Reviewed/updated README, workspace READMEs, env examples, DEPLOYMENT, ARCHITECTURE, API,
+LEARNING, WALKTHROUGH, ROADMAP and REQUIREMENTS_CHECKLIST. Preserved PROJECT_BRIEF and
+all nine consolidated docs; explicitly recorded user's scope override in the checklist.
+
+Next: commit/push only when asked; create free accounts/settings following DEPLOYMENT.md,
+then authorize publishing and verify actual URLs, Google login, Gemini, private storage,
+quota behavior, restart persistence and backup restoration. No hosted service result
+or perpetual zero-cost guarantee is claimed. Use fictional data for this portfolio demo.
+Suggested commit: `feat: adapt Phase 10 deployment for a free portfolio demo`.
+Learning exercise: explain why NODE_ENV=production can coexist with Clerk development,
+and why a small AI operation quota does not prove that provider billing is disabled.
+
+
+## Historical checkpoint — Phase 10 paid preparation — 2026-10-24
+
+Production implementation and deployment runbook are prepared and locally verified.
+**Deployment pending:** no hosting resources, paid plans, domains, public URLs or production
+credentials were created. No publication was authorized by this implementation request.
+Phase 8/9 commit `6dab920` was previously pushed successfully. Phase 10 is uncommitted
+and unpushed. Phase 11 has not started; next action is production setup and live acceptance.
+
+Implemented:
+- Root Vercel SPA/build/header configuration and hosted build environment validation.
+- Render one-instance API/PostgreSQL Blueprint, manual deployment, current compute plan
+  identifiers, readiness, 90-second shutdown window and pre-deploy migrations. Actual
+  provider import/validation remains pending account access; files are not a live release.
+- Production startup validation, live Clerk/AI requirements, exact HTTPS CORS/azp,
+  production bind address and HSTS. Existing test identities remain test-only.
+- Verified PostgreSQL TLS or explicit same-region Render internal transport; development
+  remains local-only. Private S3 adapter and stable environment resume-link signing key.
+- Prisma CLI retained after production pruning. Provider-specific private bucket policies,
+  restricted database roles, migrations/backups, release/rollback and live checks documented.
+- Network-error wording now applies to hosted as well as local API outages.
+- Compatible audit fixes: body-parser 2.4.0, fast-uri 3.1.9, Zod 4.6.7 in the lockfile.
+
+Verification actually performed:
+- 34 client + 64 server + 33 isolated PostgreSQL + 1 Chromium tests passed (132 total).
+  Four new production tests cover missing/unsafe config, HTTPS origins, DB transport,
+  production readiness/CORS/auth and HSTS. Browser uses a synthetic signed identity and
+  mock AI; no new production Google OAuth or live Gemini/voice verification is claimed.
+- Database/browser attempts first failed because local PostgreSQL was stopped. Started
+  the existing helper, reran both successfully. Four migrations applied to fresh temporary
+  databases; those test databases are removed by the runner. Existing user data preserved.
+- Clean isolated source copy in system temp, without local .env: npm ci, db:generate,
+  build, npm prune --omit=dev and Prisma schema validation all passed. Tested on Windows
+  Node22.14; Render template targets Node24.13.0. Hosted Linux execution not yet verified.
+- Hosted Vercel build with synthetic public settings passed; localhost API URL rejected.
+  Ordinary local build restored afterward. Lint, source/HEAD/bundle secret scan and
+  whitespace checks passed. No secrets copied to the clean source folder.
+- npm audit --omit=dev: zero vulnerabilities. Full audit: five dev-only findings
+  (four high, one moderate): S3rver/busboy/dicer/fast-xml-parser plus undici through jsdom.
+  Production pruning excludes them. Existing pg concurrent-query deprecation remains.
+- No remote CI result inspected, no real hosted S3/TLS/database backup restore tested.
+
+Reviewed/updated README, both workspace READMEs, both env examples, API, ARCHITECTURE,
+DEPLOYMENT, LEARNING, ROADMAP, REQUIREMENTS_CHECKLIST and PROJECT_WALKTHROUGH. Kept the
+master PROJECT_BRIEF unchanged and docs consolidated into the same nine files. Earlier
+local-only deployment restrictions below are historical; this checkpoint supersedes them.
+
+Remaining publication gates: explicit approval, accounts/production domain and Clerk
+Google configuration, private bucket settings, runtime DB privileges, backup restore,
+actual hosting URLs, deployment journey and alert delivery. Partial frontend CSP,
+conservative shared proxy-IP limiting, single instance, parser isolation limits, provider
+costs and usage/account-retention policy are documented in DEPLOYMENT.md. Preparation
+checkboxes are complete; hosted acceptance remains unchecked. No claims of live deployment.
+
+Learning checkpoint: explain public build-time VITE settings versus private runtime
+settings, and why code rollback does not undo data/schema changes. Practice tracing an
+answer from browser through API to PostgreSQL. Run locally using README's four terminals;
+follow DEPLOYMENT.md only after publication is authorized. Suggested commit message:
+`feat: prepare Phase 10 production deployment`.
+
+
+## Historical checkpoint — Phases 8 and 9 accepted — 2026-10-24
 
 The user confirmed “phase 9 and phase 8 everything is wokring” after receiving
 both manual checklists. Record this as user-reported acceptance of the voice flow

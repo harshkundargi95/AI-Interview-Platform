@@ -214,3 +214,30 @@ separate production credentials, TLS, backups, storage and operational monitorin
 
 Exercise: run the synthetic monitoring exercise in PROJECT_WALKTHROUGH.md and explain
 why a test-identity browser journey cannot prove Google OAuth works in a real browser.
+
+## Phase 10 learning checkpoint
+
+- Hosting separates static frontend assets from a continuously running API/database.
+- `0.0.0.0` lets the hosting proxy reach the process; HTTPS terminates at the host.
+- VITE variables are public build inputs. Server environment values stay server-side.
+- CORS controls browser origins; verified tokens and ownership control authorization.
+- Database migrations update schema. Backups and rollback solve different failures.
+- Private buckets require provider policies as well as application ownership checks.
+- A clean build proves reproducibility; only a real hosted journey proves deployment.
+
+Practice: explain why changing VITE_API_URL needs a rebuild, and why returning to an old
+Git commit cannot recover a deleted interview. Then follow the pending verification
+checklist in DEPLOYMENT.md after publication is separately authorized.
+
+## Phase 10 free-demo revision — 2026-10-25
+
+Production runtime optimizations (NODE_ENV=production) are separate from auth environment
+(DEPLOYMENT_MODE=demo). Development Clerk still verifies real users; it is not fake login.
+A free hosting plan is a provider-account setting, not something an environment variable
+can prove. Small operation quotas limit consumption but do not enforce a currency budget.
+Supabase runs the same PostgreSQL engine; switching hosts does not require replacing Prisma.
+S3-compatible endpoints can include a path, while CORS origins never include a path.
+
+Practice: explain why anonymous Supabase REST access would bypass Express ownership checks,
+and why a sleeping API cannot promise exact physical deletion at the24h mark. Follow the
+current DEPLOYMENT guide; earlier paid-domain instructions are superseded for this demo.

@@ -9,6 +9,8 @@ const navigation = [
 ]
 
 export default function Layout() {
+  const demo = import.meta.env.VITE_DEPLOYMENT_MODE === 'demo'
+  const hosted = demo || Boolean(import.meta.env.VITE_API_URL?.startsWith('https://'))
   const { pathname } = useLocation()
   const mainRef = useRef(null)
   const previousPath = useRef(pathname)
@@ -30,13 +32,13 @@ export default function Layout() {
       <header className="site-header">
         <div className="header-top">
           <Link className="brand" to="/">Interview Practice<span aria-hidden="true"> /</span></Link>
-          <div className="header-actions"><span className="phase-label">Local practice</span><ThemeToggle /><AccountControls /></div>
+          <div className="header-actions"><span className="phase-label">{demo ? 'Free demo' : hosted ? 'Interview practice' : 'Local practice'}</span><ThemeToggle /><AccountControls /></div>
         </div>
         <nav className="site-nav" aria-label="Main navigation">
           {navigation.map(([to, label]) => <NavLink key={to} to={to} end={to === '/'}>{label}</NavLink>)}
         </nav>
       </header>
-      <div className="preview-banner"><span className="status-dot" aria-hidden="true" /><p><strong>Practice locally.</strong> Save progress to keep answers in local PostgreSQL. Sign in to access your own interviews. Setup shows the active AI mode; mock reports are demonstrations and live scores are coaching guidance.</p></div>
+      <div className="preview-banner"><span className="status-dot" aria-hidden="true" /><p>{demo ? <><strong>Portfolio demo.</strong> The server may take about a minute to wake up. Uses development sign-in and limited free AI quotas. Use fictional resume details; keep a copy of your work. Scores are coaching guidance.</> : <><strong>{hosted ? 'Interview practice.' : 'Practice locally.'}</strong> Save progress to keep your answers. Sign in to access your own interviews. Setup shows the active AI mode; mock reports are demonstrations and live scores are coaching guidance.</>}</p></div>
       <main id="main" ref={mainRef} tabIndex={-1}><div key={pathname} className="page-content"><Outlet /></div></main>
       <footer><span>Built one phase at a time.</span><span>Learn → Practice → Reflect</span></footer>
     </div>

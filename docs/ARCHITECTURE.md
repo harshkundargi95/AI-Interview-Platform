@@ -149,3 +149,39 @@ unique temporary database. Normal client/src/main.jsx entry paths do not import 
 The fixture simulates sign-in with ephemeral signed tokens verified by real Clerk
 middleware, while AI is explicitly mocked. Live synthetic evaluation is a separate,
 explicit command. CI runs no paid/provider calls and no real OAuth credentials.
+
+## Phase 10 production configuration
+
+Current production path supersedes the earlier unconditional local-only startup guard.
+`config.js` validates real production settings before network startup. PostgreSQL uses
+verified TLS, with an explicit same-region Render internal-network exception; development
+still refuses remote databases. Exact HTTPS origins are reused for CORS and Clerk azp.
+The app refuses absent hosted services/mock AI in production. No development identity
+was introduced. The API binds 0.0.0.0 only in production, behind hosting HTTPS termination.
+
+Vercel serves the SPA and static recording worklet; Render runs one long-lived API and
+managed PostgreSQL; the API accesses a private S3-compatible bucket. Resume links use a
+stable environment signing secret and still require bearer ownership. Readiness checks
+DB and bucket. The API intentionally does not trust arbitrary forwarded IPs: shared
+proxy rate-limit buckets remain an initial availability limitation. Before scale-out,
+add shared HTTP counters and verified proxy configuration. Provider quotas remain durable.
+
+Deployment files are prepared, not published. See DEPLOYMENT.md for limitations and
+live checks; no hosted data, actual domains, or production OAuth have been verified.
+
+## Current Phase 10 override — free demo (2026-10-25)
+
+Supersedes the paid hosting target above: Vercel Hobby static SPA -> Render Free Express
+-> Supabase Free PostgreSQL and private S3 storage. Auth stays real Clerk development;
+NODE_ENV=production plus explicit DEPLOYMENT_MODE=demo selects test keys. Missing/unknown
+mode cannot silently weaken production key validation. Exact origins, bearer verification,
+DB ownership, TLS and HSTS still apply. No auth bypass or mock identity is deployed.
+
+Free-host startup runs committed migrations and app-table privilege revocation before
+listening; no paid predeploy hook. Supabase Data API must also be disabled before first
+migration. The existing AWS SDK accepts Supabase's HTTPS /storage/v1/s3 endpoint without
+relaxing CORS paths. S3 keys are backend-only and project-wide, so isolate this project.
+Free-tier acknowledgement is operator-supplied, not billing verification. Demo caps are
+5/user/day,20 globally/day; failure never chooses a paid fallback. The UI labels the demo.
+No paid resources are present in the current manifest. Sleep delays physical resume cleanup;
+24h application access expiry still holds. See DEPLOYMENT.md for sources and live gates.

@@ -351,19 +351,37 @@ CI is configured and corresponding commands passed locally; no remote workflow r
 - [x] User confirms the complete journey with real Clerk sign-in after Phase 9.
   User reported both phases working on 2026-10-24 after the checklists; individual
   steps were not separately observed by the assistant.
-- [ ] Remote CI run (requires an explicitly authorized commit/push).
+- [ ] Remote CI result (Phase 8/9 commit 6dab920 was pushed; remote result not inspected).
 
 ## Phase 10 — Deployment
 
+Current user override (2026-10-25): entirely free portfolio demo. Supersedes paid Render
+plans and production Clerk/custom-domain requirement with explicit demo mode, free
+vercel.app address, Supabase Free DB/files and Clerk development. Real auth/ownership
+remain required. Original master prompt retained unchanged; hosted acceptance is pending.
+
+- [x] Free-only manifest; no paid database/predeploy command.
+- [x] Explicit demo key guards and visible demo limits.
+- [x] Supabase S3 path support and verified TLS/session migration preparation.
+- [x] Startup app-table public/Data API privilege hardening; disable provider Data API too.
+- [x] Operator free-tier acknowledgement and conservative AI ceilings; no paid fallback.
+- [ ] Actual free-account billing/eligibility and hosted provider checks verified.
+
+Free-demo verification (2026-10-25): 35 client + 70 server + 34 local DB + 1 Chromium
+checks passed (140 total), plus lint/build/secret scan and five hosted build guard
+combinations. Initial parser/worker timeouts passed on rerun without weakening limits.
+No actual Supabase/Render/Vercel billing, hosting or OAuth journey has been verified.
+
+
 Prepare and document:
-- [ ] Vercel frontend deployment.
-- [ ] Render backend and PostgreSQL.
-- [ ] Private file storage.
-- [ ] Production environment variables.
-- [ ] Authentication origins and CORS.
-- [ ] Database migrations and backups.
-- [ ] Hosting constraints.
-- [ ] Release and rollback procedures.
+- [x] Vercel frontend deployment.
+- [x] Render backend and PostgreSQL hosting plan (user override: Render Free API + Supabase Free PostgreSQL; no Render DB resource).
+- [x] Private file storage.
+- [x] Production environment variables.
+- [x] Authentication origins and CORS.
+- [x] Database migrations and backups.
+- [x] Hosting constraints.
+- [x] Release and rollback procedures.
 
 Disable mock identity and unintended mock AI in production.
 
@@ -372,9 +390,17 @@ Prepare all deployable files before requesting publication authorization.
 If authorized and access is available, deploy and verify actual URLs. Otherwise record the exact remaining steps and mark deployment pending.
 
 Acceptance:
-- [ ] A clean checkout builds using documented instructions.
+- [x] A clean checkout builds using documented instructions.
 - [ ] HTTPS, authentication, persistence, and AI work on the deployed application when deployment is possible.
-- [ ] Deployment status is based on verification, not merely configuration files.
+- [x] Deployment status is based on verification, not merely configuration files.
+
+Phase 10 evidence (2026-10-24): manifests, production config/storage, hosted build guards,
+regression tests and DEPLOYMENT runbook implemented. Clean source copy (no local .env)
+installed, generated Prisma, built, pruned dev packages and validated schema successfully.
+The preparation checkboxes mean files and procedures are ready, not resources provisioned.
+Live deployment remains pending explicit publication approval, accounts/domain/settings,
+private bucket, production OAuth, runtime DB privileges, backup/restore and live journey.
+No hosted URL or restore drill is claimed. Detailed verification is in PROGRESS.md.
 
 ## Phase 11 — Portfolio completion
 

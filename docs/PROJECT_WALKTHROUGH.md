@@ -1574,3 +1574,87 @@ Practice task: change minimumRequests in monitoring.json to 3, pipe three synthe
 Suggested commit: `feat: add Phase 9 security and reliability verification`.
 No commit/push was made. Next is Phase 10 deployment preparation after review, with
 real Clerk and Phase 8 microphone checks subsequently accepted by user report on 2026-10-24. Remote CI and production verification remain separate gates.
+
+## Phase 10 — Preparing the app for hosting
+
+Status: implementation/preparation completed; publication and live acceptance pending.
+The previous phases ran on your PC. This phase keeps the same app, but replaces local
+infrastructure choices with explicit production configuration. No UI rebuild was needed.
+
+1. Inspected the real entry point, database adapter, auth/CORS and resume storage. They
+   intentionally rejected production and remote databases. We retained local defaults.
+2. Added `server/src/config.js`: missing settings fail before startup. Production needs
+   exact HTTPS origins, real Clerk keys, explicit live Gemini, private HTTPS S3 and a
+   stable resume-link secret. Database connections verify certificates, except an
+   explicitly selected Render private internal connection on Render itself.
+3. Connected startup to these checks and 0.0.0.0/PORT. Updated createApp to admit a
+   fully configured production runtime while continuing to reject mock/test identities.
+4. Generalized storage into configuredStorage. The same put/get/delete/health interface
+   now connects to a private hosted bucket in production; S3rver stays local only.
+   API-authorized downloads still check owner, expiry and signature. Signing secret is
+   stable across redeploys; rotate it to invalidate outstanding short-lived links.
+5. Added root `vercel.json` (SPA rewrite, output, security headers) and `render.yaml`
+   (one API, PostgreSQL, predeploy migration, readiness, explicit deploys). Vercel build
+   checks reject localhost API addresses and test Clerk keys. Both use repository root
+   so workspace dependencies and shared/ are included.
+6. Kept Prisma CLI available after production pruning. Clean-copy verification runs
+   installation, generation, build, pruning and Prisma validation without .env files.
+7. Added production regression tests for fail-closed config, TLS/private-host checks,
+   exact CORS, readiness and missing authentication. These use synthetic config and
+   stub infrastructure; they do not assert that a hosted bucket/database works.
+8. Wrote release/backup/rollback instructions in DEPLOYMENT.md and updated progress.
+   Current audit fixes update body-parser, fast-uri and Zod compatibly. No paid service,
+   new account, public URL, production credential, commit or push was created.
+
+A frontend build embeds public settings; backend settings remain server environment.
+A migration changes schema, not the application version. A rollback restores old code,
+not deleted records or old schema. That is why restoring a backup into a separate DB
+must be rehearsed before public release. Local records are not automatically uploaded.
+
+Run locally as before; inspect DEPLOYMENT.md for exact hosting steps. Production checks
+still pending include real domain/HTTPS, Google sign-in, live Gemini/voice, persistence
+across deploys, private storage policies, least-privilege DB roles and a restore drill.
+The initial CSP is partial; the proxy rate limiter is conservative; no production
+retention automation or hosted alert destination is claimed. Read the limitations in
+DEPLOYMENT.md before authorizing publication.
+
+Learning exercise: trace one saved answer from browser to Render to PostgreSQL, then
+explain which environment variable changes require a frontend rebuild versus API restart.
+Suggested commit: `feat: prepare Phase 10 production deployment`.
+Next: configure and verify the authorized deployment before Phase 11 portfolio work.
+
+## Phase 10 revision — zero-cost demo (2026-10-25)
+
+The user requested an entirely free deployment. This supersedes the earlier paid Render
+DB/API and production Clerk/domain plan; it is still Phase 10 and is not yet deployed.
+
+1. Checked official Render, Vercel, Supabase, Clerk and Gemini docs. Selected one Supabase
+   Free project for DB/files instead of an expiring Render Free DB. No new auth framework.
+2. Changed render.yaml to plan free with no database resource or paid pre-deploy hook.
+   New start-demo.js validates env, runs migrations, hardens DB table privileges, then starts
+   the API. No seed/reset. A failed step stops startup. TLS verification stays enabled for
+   both migration CLI and runtime; CA files are temporary and removed after migration.
+3. Added explicit deployment-mode validation. Demo permits only matching Clerk development
+   keys; production keeps requiring live keys. Both require real verified bearer users,
+   owner-scoped data and exact HTTPS CORS. Hosted UI builds validate corresponding keys.
+4. Added Supabase S3 endpoint-path support with HTTPS/no credentials/query/hash, separate
+   from strict CORS-origin validation. Retained the existing storage interface/ownership.
+5. Required an operator free-tier billing acknowledgement and low per-user/global AI caps.
+   This is not an automatic account/billing check, and no paid fallback exists. Use a
+   Gemini project without active paid billing and check model free eligibility in AI Studio.
+6. Updated the UI notice for demo sleep, quotas and fictional resume data, and removed
+   the misleading local-only storage label on hosted builds. Local workflow is unchanged.
+7. Rewrote DEPLOYMENT.md for free signup/setup, no card/upgrades, Supabase session pooler/CA,
+   private bucket, disabled Data API, Vercel demo env and actual verification steps.
+
+Files: server/src/config.js, demoDeployment.js, scripts/start-demo.js, render.yaml,
+client/vite.config.js and Layout.jsx. Tests cover explicit-mode guard failures, endpoint
+safety, TLS migration preparation, transaction rollback, actual public ACL revocation
+and demo UI. Tests use synthetic config/local DB; hosted provider behavior is still pending.
+
+Limits: free services sleep/pause; no exact physical24h deletion while asleep, no Supabase
+S3 lifecycle policy, no paid backup guarantee, broad backend S3 credential scope, development
+Google auth and small AI quotas. Keep fictional data/copies and rehearse backups. No domain,
+paid service, commit, push or deployment was created. Suggested commit:
+`feat: adapt Phase 10 deployment for a free portfolio demo`.
+Next: configure free accounts and verify the real deployed journey before Phase 11.

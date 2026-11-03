@@ -288,3 +288,13 @@ in config/monitoring.json; it does not send anything to an external service.
 CI configuration is in .github/workflows/ci.yml and has not run remotely yet.
 Runtime dependency audit is clean; four known dev-only S3 emulator findings remain.
 See docs/PROGRESS.md for exact verification and docs/DEPLOYMENT.md for release gates.
+
+## Phase 10: free portfolio demo
+
+The deployment target is now Vercel Hobby + Render Free + Supabase Free database/private
+storage + Clerk development + Gemini Free Tier. No purchased domain or paid resource is
+in render.yaml. Deployment itself is pending; this source release contains the deployment preparation.
+Follow [DEPLOYMENT.md](docs/DEPLOYMENT.md) for the exact account settings and verification.
+Keep free plans and no payment methods/billing enabled. The application cannot verify
+provider billing; its quota acknowledgement is not a guarantee of zero charges.
+Free services may sleep/pause; use fictional resume data. Local commands remain unchanged.

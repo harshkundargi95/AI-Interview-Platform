@@ -23,7 +23,7 @@ export async function request(path, { method = 'GET', body, token, raw, download
   } catch (error) {
     if (error instanceof RequestError) throw error
     if (error.name === 'AbortError') throw new RequestError('The server took too long. Your answers are still here. Retry the request.', 'TIMEOUT')
-    throw new RequestError('Cannot reach the local server. Check that it is running on port 3001, then retry. Your draft has not been cleared.', 'NETWORK_ERROR')
+    throw new RequestError('Cannot reach the server. Check your connection and retry. For local development, ensure the API is running on port 3001. Your draft has not been cleared.', 'NETWORK_ERROR')
   } finally {
     clearTimeout(timer)
   }
